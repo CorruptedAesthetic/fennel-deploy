@@ -1,0 +1,89 @@
+services:
+  nginx:
+    build: ./nginx
+    volumes:
+      - staticvol:/opt/app/static
+      - mediavol:/opt/app/mediafiles
+    ports:
+      - 8080:8080
+      - 8081:8081
+    depends_on:
+      - 'api'
+
+  app:
+    build: ./whiteflag-schoolpilot/
+    entrypoint: /bin/bash
+    command: -c "serve -s /app/build"
+
+  api:
+    entrypoint:
+      - /opt/app/runner.sh
+      - init-all-run
+    build:
+      context: ./fennel-service-api/
+      dockerfile: Dockerfile
+    volumes:
+      - staticvol:/opt/app/static
+      - mediavol:/opt/app/mediafiles
+    environment:
+      - DEBUG=True
+      - ADMIN_NAME=""
+      - ADMIN_EMAIL=""
+      - EMAIL_HOST=""
+      - EMAIL_PORT=""
+      - EMAIL_USERNAME=""
+      - EMAIL_PASSWORD=""
+      - DEFAULT_FROM_EMAIL=""
+      - SERVER_EMAIL=""
+      - SECRET_KEY=2HY>fXi!dQ&(9Vf.XghCa;L6G=Ul4r-Bwqh>ae0RG3vIh1ZJ%T
+      - FENNEL_SUBSERVICE_IP=http://subservice:6060
+      - FENNEL_CLI_IP=http://fennel-cli:9031
+      - POSTGRES_DB=database
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASS=postgres
+      - POSTGRES_NAME=postgres
+    depends_on:
+      - 'database'
+      - 'fennel-cli'
+      - 'subservice'
+
+  database:
+    image: 'postgres'
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  fennel-cli:
+    build: ./fennel-cli/
+    entrypoint:
+      - /app/target/release/fennel-cli
+      - start-api
+
+  subservice:
+    build: ./subservice/
+    entrypoint: /bin/bash
+    command: -c "pm2-runtime /app/build/src/server.js"
+
+  chain:
+    build: ./fennel-solonet/
+    entrypoint: /app/fennel-node
+    command: --base-path /app/chain --chain local --alice --port 30333 --rpc-port 9945 --node-key 0000000000000000000000000000000000000000000000000000000000000001 --telemetry-url "wss://telemetry.polkadot.io/submit/ 0" --validator --rpc-cors all --prometheus-external --rpc-methods Unsafe --rpc-external
+    volumes:
+      - chain_storage:/app/chain
+  
+  peer:
+    build: ./fennel-solonet/
+    entrypoint: /app/fennel-node
+    command: --base-path /app/peer --chain local --bob --port 30334 --rpc-port 9946 --telemetry-url "wss://telemetry.polkadot.io/submit/ 0" --validator  --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp --rpc-cors all --prometheus-external --rpc-methods Unsafe --rpc-external
+    volumes:
+      - peer_storage:/app/peer
+
+volumes:
+  db:
+  staticvol:
+  mediavol:
+  chain_storage:
+  peer_storage:
