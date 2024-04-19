@@ -13,3 +13,6 @@
 [submodule "fennel-solonet"]
 	path = fennel-solonet
 	url = git@github.com:fennelLabs/fennel-solonet.git
+[submodule "substrate-front-end-template"]
+	path = substrate-front-end-template
+	url = git@github.com:fennelLabs/substrate-front-end-template.git
