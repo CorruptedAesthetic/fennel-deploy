@@ -9,14 +9,18 @@ services:
       - 8081:8081
     depends_on:
       - 'api'
+    networks:
+      - fennel_network
 
   app:
-    image: ghcr.io/fennellabs/whiteflag-schoolpilot:main
-    #build: ./whiteflag-schoolpilot/
+    #image: ghcr.io/fennellabs/whiteflag-schoolpilot:main
+    build: ./whiteflag-schoolpilot/
     entrypoint: /bin/bash
     command: -c "serve -s /app/build"
     ports:
       - 3000:3000
+    networks:
+      - fennel_network
 
   frontend:
     image: ghcr.io/fennellabs/substrate-front-end-template:main
@@ -25,15 +29,16 @@ services:
     command: -c "yarn start"
     ports:
       - 8000:8000
+    networks:
+      - fennel_network
 
   api:
-    entrypoint:
-      - /opt/app/runner.sh
-      - init-all-run
-    image: ghcr.io/fennellabs/fennel-service-api:master
-    #build:
-    #  context: ./fennel-service-api/
-    #  dockerfile: Dockerfile
+    entrypoint: /bin/bash
+    command: -c "source /opt/venv/bin/activate && /opt/app/runner.sh init-all-run"
+    #image: ghcr.io/fennellabs/fennel-service-api:master
+    build:
+      context: ./fennel-service-api/
+      dockerfile: Dockerfile
     volumes:
       - staticvol:/opt/app/static
       - mediavol:/opt/app/mediafiles
@@ -60,6 +65,8 @@ services:
       - 'subservice'
     ports:
       - 1234:1234
+    networks:
+      - fennel_network
 
   database:
     image: 'postgres'
@@ -69,6 +76,8 @@ services:
       - POSTGRES_PASSWORD=postgres
     volumes:
       - db:/var/lib/postgresql/data
+    networks:
+      - fennel_network
 
   fennel-cli:
     image: ghcr.io/fennellabs/fennel-cli:main
@@ -78,6 +87,8 @@ services:
       - start-api
     ports:
       - 9030:9030
+    networks:
+      - fennel_network
 
   subservice:
     image: ghcr.io/fennellabs/subservice:main
@@ -86,6 +97,8 @@ services:
     command: -c "pm2-runtime /app/build/src/server.js"
     ports:
       - 6060:6060
+    networks:
+      - fennel_network
 
   chain:
     image: ghcr.io/fennellabs/fennel-solonet:main
@@ -97,6 +110,8 @@ services:
     ports:
       - 30333:30333
       - 9945:9945
+    networks:
+      - fennel_network
   
   peer:
     image: ghcr.io/fennellabs/fennel-solonet:main
@@ -108,6 +123,8 @@ services:
     ports:
       - 30334:30334
       - 9946:9946
+    networks:
+      - fennel_network
 
 volumes:
   db:
@@ -115,3 +132,7 @@ volumes:
   mediavol:
   chain_storage:
   peer_storage:
+
+networks:
+  fennel_network:
+    driver: bridge
