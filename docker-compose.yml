@@ -13,8 +13,8 @@ services:
       - fennel_network
 
   app:
-    #image: ghcr.io/fennellabs/whiteflag-schoolpilot:main
-    build: ./whiteflag-schoolpilot/
+    image: ghcr.io/fennellabs/whiteflag-schoolpilot:main
+    #build: ./whiteflag-schoolpilot/
     entrypoint: /bin/bash
     command: -c "serve -s /app/build"
     ports:
@@ -35,10 +35,10 @@ services:
   api:
     entrypoint: /bin/bash
     command: -c "source /opt/venv/bin/activate && /opt/app/runner.sh init-all-run"
-    #image: ghcr.io/fennellabs/fennel-service-api:master
-    build:
-      context: ./fennel-service-api/
-      dockerfile: Dockerfile
+    image: ghcr.io/fennellabs/fennel-service-api:master
+    # build:
+    #   context: ./fennel-service-api/
+    #   dockerfile: Dockerfile
     volumes:
       - staticvol:/opt/app/static
       - mediavol:/opt/app/mediafiles
