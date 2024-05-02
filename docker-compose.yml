@@ -12,7 +12,7 @@ services:
       - fennel_network
 
   app:
-    image: ghcr.io/fennellabs/whiteflag-schoolpilot:main
+    image: ghcr.io/fennellabs/whiteflag-schoolpilot:v0.1.1
     #build: ./whiteflag-schoolpilot/
     environment:
       - API_URL=http://localhost/api/

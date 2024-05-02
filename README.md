@@ -25,7 +25,7 @@ You'll find Fennel Labs' build of the app at http://localhost:3000.
 
 ## Communicating with the API
 
-Point any apps you need to interact with the Fennel API at http://localhost:1234/v1/. The API might take several minutes to run all tests and confirm full availability.
+Point any apps you need to interact with the Fennel API at http://localhost:1234/api/v1/. The API might take several minutes to run all tests and confirm full availability.
 
 ## Configuring Your Account
 You'll need someone set up as an administrator of an API group in order to manage accounts and their related blockchain assets. Navigate to http://localhost:1234/dashboard/ to get started. You'll need to create an account, then follow the instructions on-screen to get set up with a group and a blockchain address.
