@@ -1,13 +1,34 @@
 services:
+  app-nginx:
+    # image: ghcr.io/fennellabs/app-nginx:main
+    build: ./app-nginx
+    ports:
+      - 80:80
+    depends_on:
+      - 'app'
+    networks:
+      - fennel_network
+
   nginx:
+    #image: ghcr.io/fennellabs/fennel-nginx:main
     build: ./nginx
     volumes:
       - staticvol:/opt/app/static
       - mediavol:/opt/app/mediafiles
     ports:
-      - 80:80
+      - 81:80
     depends_on:
       - 'api'
+    networks:
+      - fennel_network
+
+  substrate-nginx:
+    #image: ghcr.io/fennellabs/substrate-nginx:main
+    build: ./substrate-nginx
+    ports:
+      - 82:80
+    depends_on:
+      - 'frontend'
     networks:
       - fennel_network
 
