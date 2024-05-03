@@ -1,40 +1,40 @@
 services:
   app-nginx:
-    image: ghcr.io/fennellabs/app-nginx:main
-    #build: ./app-nginx
+    #image: ghcr.io/fennellabs/app-nginx:main
+    build: ./nginx
     ports:
-      - 80:80
+      - 8080:8080
     depends_on:
       - 'app'
     networks:
       - fennel_network
 
   nginx:
-    image: ghcr.io/fennellabs/fennel-nginx:main
-    #build: ./nginx
+    #image: ghcr.io/fennellabs/fennel-nginx:main
+    build: ./nginx
     volumes:
       - staticvol:/opt/app/static
       - mediavol:/opt/app/mediafiles
     ports:
-      - 81:80
+      - 8081:8081
     depends_on:
       - 'api'
     networks:
       - fennel_network
-
+    
   substrate-nginx:
-    image: ghcr.io/fennellabs/substrate-nginx:main
-    # build: ./substrate-nginx
+    #image: ghcr.io/fennellabs/substrate-nginx:main
+    build: ./substrate-nginx
     ports:
-      - 82:80
+      - 8082:8082
     depends_on:
       - 'frontend'
     networks:
       - fennel_network
 
   app:
-    image: ghcr.io/fennellabs/whiteflag-schoolpilot:v0.1.1
-    #build: ./whiteflag-schoolpilot/
+    #image: ghcr.io/fennellabs/whiteflag-schoolpilot:main
+    build: ./whiteflag-schoolpilot/
     environment:
       - API_URL=http://localhost/api/
     entrypoint: /bin/bash
@@ -154,6 +154,7 @@ volumes:
   mediavol:
   chain_storage:
   peer_storage:
+  appstaticvol:
 
 networks:
   fennel_network:

@@ -19,3 +19,9 @@
 [submodule "nginx"]
 	path = nginx
 	url = git@github.com:fennellabs/fennel-nginx.git
+[submodule "app-nginx"]
+	path = app-nginx
+	url = git@github.com:fennelLabs/app-nginx.git
+[submodule "substrate-nginx"]
+	path = substrate-nginx
+	url = git@github.com:fennellabs/substrate-nginx.git
