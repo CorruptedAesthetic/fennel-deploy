@@ -16,3 +16,12 @@
 [submodule "substrate-front-end-template"]
 	path = substrate-front-end-template
 	url = git@github.com:fennelLabs/substrate-front-end-template.git
+[submodule "nginx"]
+	path = nginx
+	url = git@github.com:fennellabs/fennel-nginx.git
+[submodule "app-nginx"]
+	path = app-nginx
+	url = git@github.com:fennelLabs/app-nginx.git
+[submodule "substrate-nginx"]
+	path = substrate-nginx
+	url = git@github.com:fennellabs/substrate-nginx.git
