@@ -1,27 +1,27 @@
 [submodule "fennel-cli"]
 	path = fennel-cli
-	url = git@github.com:fennelLabs/fennel-cli.git
+	url = https://github.com/fennelLabs/fennel-cli.git
 [submodule "fennel-service-api"]
 	path = fennel-service-api
-	url = git@github.com:fennelLabs/fennel-service-api.git
+	url = https://github.com/fennelLabs/fennel-service-api.git
 [submodule "subservice"]
 	path = subservice
-	url = git@github.com:fennelLabs/subservice.git
+	url = https://github.com/fennelLabs/subservice.git
 [submodule "whiteflag-schoolpilot"]
 	path = whiteflag-schoolpilot
-	url = git@github.com:fennelLabs/whiteflag-schoolpilot.git
+	url = https://github.com/fennelLabs/whiteflag-schoolpilot.git
 [submodule "fennel-solonet"]
 	path = fennel-solonet
-	url = git@github.com:fennelLabs/fennel-solonet.git
+	url = https://github.com/fennelLabs/fennel-solonet.git
 [submodule "substrate-front-end-template"]
 	path = substrate-front-end-template
-	url = git@github.com:fennelLabs/substrate-front-end-template.git
+	url = https://github.com/fennelLabs/substrate-front-end-template.git
 [submodule "nginx"]
 	path = nginx
-	url = git@github.com:fennellabs/fennel-nginx.git
+	url = https://github.com/fennellabs/fennel-nginx.git
 [submodule "app-nginx"]
 	path = app-nginx
-	url = git@github.com:fennelLabs/app-nginx.git
+	url = https://github.com/fennelLabs/app-nginx.git
 [submodule "substrate-nginx"]
 	path = substrate-nginx
-	url = git@github.com:fennellabs/substrate-nginx.git
+	url = https://github.com/fennellabs/substrate-nginx.git
