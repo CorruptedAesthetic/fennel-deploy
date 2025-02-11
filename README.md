@@ -37,11 +37,3 @@ From there, click Create a Wallet to get an address on our blockchain. This will
 ![Create a Wallet](img/admin.png)
 
 ![Address Display](img/address.png)
-
-Paste that into the receiving field in the form on the blockchain's interface (https:/localhost:8000), and select one of the pre-funded accounts as the sender. You'll see your token count increase in the dashboard when the transaction completes.
-
-![Transerring Tokens](img/transfer.png)
-
-## Managing the Blockchain
-
-The blockchain will fully build itself and begin running a local copy of a fully-functioning blockchain as soon as you start the Compose setup. You'll need to navigate to http://localhost:8000 and make sure that the address you created during account setup has received tokens. See Configuring Your Account for details.
