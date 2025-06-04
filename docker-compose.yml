@@ -121,28 +121,16 @@ services:
       - fennel_network
 
   chain:
-    #image: ghcr.io/fennellabs/fennel-solonet:main
-    build: ./fennel-solonet/
-    entrypoint: /app/fennel-node
-    command: --base-path /app/chain --chain local --alice --port 30333 --rpc-port 9945 --node-key 0000000000000000000000000000000000000000000000000000000000000001 --telemetry-url "wss://telemetry.polkadot.io/submit/ 0" --validator --rpc-cors all --prometheus-external --rpc-methods Unsafe --rpc-external
+    image: ghcr.io/corruptedaesthetic/uptodatefennelnetmp:sha-15cb152bffc1109a363da0d2d2e6cd498d5dc283
+    # build: ./fennel-solonet/  # Remove local build, use GitHub Actions built image
+    user: root
+    entrypoint: /usr/local/bin/fennel-node
+    command: --base-path /app/chain --chain local --alice --port 30333 --rpc-port 9945 --node-key 0000000000000000000000000000000000000000000000000000000000000001 --telemetry-url "wss://telemetry.polkadot.io/submit/ 0" --validator --rpc-cors all --prometheus-external --rpc-methods Unsafe --rpc-external --force-authoring
     volumes:
       - chain_storage:/app/chain
     ports:
       - 30333:30333
       - 9945:9945
-    networks:
-      - fennel_network
-  
-  peer:
-    #image: ghcr.io/fennellabs/fennel-solonet:main
-    build: ./fennel-solonet/
-    entrypoint: /app/fennel-node
-    command: --base-path /app/peer --chain local --bob --port 30334 --rpc-port 9946 --telemetry-url "wss://telemetry.polkadot.io/submit/ 0" --validator  --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp --rpc-cors all --prometheus-external --rpc-methods Unsafe --rpc-external
-    volumes:
-      - peer_storage:/app/peer
-    ports:
-      - 30334:30334
-      - 9946:9946
     networks:
       - fennel_network
 
@@ -151,9 +139,12 @@ volumes:
   staticvol:
   mediavol:
   chain_storage:
-  peer_storage:
   appstaticvol:
 
 networks:
   fennel_network:
     driver: bridge
+
+# NOTE: The 'peer' service has been removed. For multi-validator testing,
+# use the k3s setup from fennel-solonet/kubernetes/
+# Run: cd fennel-solonet/kubernetes && ./deploy-fennel.sh

@@ -1,0 +1,105 @@
+version: '3.8'
+
+# External Validators using GitHub Actions Built Images
+# This eliminates manual chainspec extraction and ensures consistency
+
+services:
+  charlie:
+    image: ghcr.io/corruptedaesthetic/uptodatefennelnetmp:sha-15cb152bffc1109a363da0d2d2e6cd498d5dc283
+    container_name: fennel-test-charlie
+    ports:
+      - "9946:9944"
+      - "10046:30333"
+    volumes:
+      - charlie_data:/data
+    environment:
+      - RUST_LOG=info
+    command: >
+      --name "Charlie"
+      --base-path /data
+      --chain /fennel/fennelSpecRaw.json
+      --listen-addr "/ip4/0.0.0.0/tcp/30333"
+      --rpc-external
+      --rpc-port 9944
+      --rpc-cors all
+      --rpc-methods unsafe
+      --bootnodes "/ip4/10.42.0.107/tcp/30333/p2p/12D3KooWR6LStFm9Vif78LEVuDRE9tYA2zJ8r4qTENoQKmv4tA5h"
+    networks:
+      - external_validators
+    restart: unless-stopped
+
+  dave:
+    image: ghcr.io/corruptedaesthetic/uptodatefennelnetmp:sha-15cb152bffc1109a363da0d2d2e6cd498d5dc283
+    container_name: fennel-test-dave
+    ports:
+      - "9947:9944"
+      - "10047:30333"
+    volumes:
+      - dave_data:/data
+    environment:
+      - RUST_LOG=info
+    command: >
+      --name "Dave"
+      --base-path /data
+      --chain /fennel/fennelSpecRaw.json
+      --listen-addr "/ip4/0.0.0.0/tcp/30333"
+      --rpc-external
+      --rpc-port 9944
+      --rpc-cors all
+      --rpc-methods unsafe
+      --bootnodes "/ip4/10.42.0.107/tcp/30333/p2p/12D3KooWR6LStFm9Vif78LEVuDRE9tYA2zJ8r4qTENoQKmv4tA5h"
+    networks:
+      - external_validators
+    restart: unless-stopped
+
+  eve:
+    image: ghcr.io/corruptedaesthetic/uptodatefennelnetmp:sha-15cb152bffc1109a363da0d2d2e6cd498d5dc283
+    container_name: fennel-test-eve
+    ports:
+      - "9948:9944"
+      - "10048:30333"
+    volumes:
+      - eve_data:/data
+    environment:
+      - RUST_LOG=info
+    command: >
+      --name "Eve"
+      --base-path /data
+      --chain /fennel/fennelSpecRaw.json
+      --listen-addr "/ip4/0.0.0.0/tcp/30333"
+      --rpc-external
+      --rpc-port 9944
+      --rpc-cors all
+      --rpc-methods unsafe
+      --bootnodes "/ip4/10.42.0.107/tcp/30333/p2p/12D3KooWR6LStFm9Vif78LEVuDRE9tYA2zJ8r4qTENoQKmv4tA5h"
+    networks:
+      - external_validators
+    restart: unless-stopped
+
+volumes:
+  charlie_data:
+  dave_data:
+  eve_data:
+
+networks:
+  external_validators:
+    driver: bridge
+
+# Usage:
+# 1. Get Alice's connection info:
+#    kubectl get pods -n fennel -o wide  # Get Alice's IP
+#    curl -s http://localhost:9944 -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "system_localPeerId"}'
+# 
+# 2. Update bootnode IP and peer ID in the command above
+#
+# 3. Start external validators:
+#    docker-compose -f docker-compose.external-validators.yml up -d charlie
+#    docker-compose -f docker-compose.external-validators.yml up -d dave  
+#    docker-compose -f docker-compose.external-validators.yml up -d eve
+#
+# 4. Generate session keys:
+#    curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys"}' http://localhost:9946
+#    curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys"}' http://localhost:9947
+#    curl -H "Content-Type: application/json" -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys"}' http://localhost:9948
+#
+# 5. Register validators via Polkadot.js connected to ws://localhost:9944 
