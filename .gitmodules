@@ -1,27 +1,21 @@
 [submodule "fennel-cli"]
 	path = fennel-cli
-	url = https://github.com/fennelLabs/fennel-cli.git
+	url = https://github.com/CorruptedAesthetic/fennel-cli.git
 [submodule "fennel-service-api"]
 	path = fennel-service-api
-	url = https://github.com/fennelLabs/fennel-service-api.git
+	url = https://github.com/CorruptedAesthetic/fennel-service-api.git
 [submodule "subservice"]
 	path = subservice
-	url = https://github.com/fennelLabs/subservice.git
+	url = https://github.com/CorruptedAesthetic/subservice.git
 [submodule "whiteflag-schoolpilot"]
 	path = whiteflag-schoolpilot
-	url = https://github.com/fennelLabs/whiteflag-schoolpilot.git
+	url = https://github.com/CorruptedAesthetic/whiteflag-schoolpilot.git
 [submodule "fennel-solonet"]
 	path = fennel-solonet
-	url = https://github.com/fennelLabs/fennel-solonet.git
-[submodule "substrate-front-end-template"]
-	path = substrate-front-end-template
-	url = https://github.com/fennelLabs/substrate-front-end-template.git
+	url = https://github.com/CorruptedAesthetic/fennel-solonet.git
 [submodule "nginx"]
 	path = nginx
-	url = https://github.com/fennellabs/fennel-nginx.git
+	url = https://github.com/CorruptedAesthetic/fennel-nginx.git
 [submodule "app-nginx"]
 	path = app-nginx
-	url = https://github.com/fennelLabs/app-nginx.git
-[submodule "substrate-nginx"]
-	path = substrate-nginx
-	url = https://github.com/fennellabs/substrate-nginx.git
+	url = https://github.com/CorruptedAesthetic/app-nginx.git
