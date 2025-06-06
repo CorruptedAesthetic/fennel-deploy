@@ -120,6 +120,8 @@ services:
     command: -c "pm2-runtime /app/build/src/server.js"
     ports:
       - 6060:6060
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - fennel_network
 
