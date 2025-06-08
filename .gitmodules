@@ -4,6 +4,7 @@
 [submodule "fennel-service-api"]
 	path = fennel-service-api
 	url = https://github.com/CorruptedAesthetic/fennel-service-api.git
+	branch = master
 [submodule "subservice"]
 	path = subservice
 	url = https://github.com/CorruptedAesthetic/subservice.git
