@@ -112,11 +112,8 @@ quick_cleanup() {
     log_substep "Cleaning Docker volumes..." "WORKING"
     docker volume ls -q | grep -i fennel | xargs -r docker volume rm 2>/dev/null || true
     
-    # Stop system services that might conflict
-    log_substep "Stopping conflicting services..." "WORKING"
-    sudo systemctl stop grafana-server 2>/dev/null || true
-    sudo service grafana-server stop 2>/dev/null || true
-    sudo kill 1500 2>/dev/null || true
+    # Note: Grafana cleanup removed - WhiteFlag app now uses port 3001 to avoid conflicts
+    log_substep "No service conflicts - WhiteFlag app uses port 3001" "SUCCESS"
     
     sleep 3
     

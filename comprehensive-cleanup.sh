@@ -48,7 +48,8 @@ echo "🔄 Step 7: Cleaning k3s cluster..."
 sudo k3s-uninstall.sh 2>/dev/null || echo "k3s not installed or already cleaned"
 
 echo "🔄 Step 8: Stopping Grafana..."
-sudo systemctl stop grafana-server 2>/dev/null || sudo service grafana-server stop 2>/dev/null || sudo kill 1500 2>/dev/null || echo "Grafana not running"
+# Note: Grafana cleanup removed - WhiteFlag app now uses port 3001 to avoid conflicts
+echo "✅ No Grafana conflicts - WhiteFlag app uses port 3001"
 
 echo "🔄 Step 9: Cleaning temporary directories..."
 sudo rm -rf /tmp/fennel-* 2>/dev/null || echo "No /tmp/fennel-* directories found"

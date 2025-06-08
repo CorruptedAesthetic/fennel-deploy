@@ -30,7 +30,7 @@ services:
     entrypoint: /bin/bash
     command: -c "serve -s /app/build"
     ports:
-      - 3000:3000
+      - 3001:3000    # Changed: External port 3001 to avoid Grafana conflict
     networks:
       - fennel_network
 
@@ -111,6 +111,7 @@ services:
     ports:
       - 30333:30333
       - 9945:9945
+      - 9615:9615    # Prometheus metrics (ecosystem standard)
     networks:
       - fennel_network
 

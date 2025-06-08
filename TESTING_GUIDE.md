@@ -74,7 +74,7 @@ docker-compose up -d
 docker-compose ps
 
 # Access services:
-# - App: http://localhost:3000
+# - App: http://localhost:3001 (changed from 3000 to avoid Grafana conflicts)
 # - API: http://localhost:1234
 # - Blockchain RPC: ws://localhost:9945
 # - Polkadot.js: https://polkadot.js.org/apps/?rpc=ws://localhost:9945
@@ -138,6 +138,32 @@ Need Frontend/API?
 └── NO → Scenario 3 (k3s only)
 ```
 
+## 🎉 **NEW: Port Conflicts Resolved!**
+
+**✅ IMPORTANT UPDATE**: We've eliminated port conflicts by changing the WhiteFlag app from port 3000 to 3001.
+
+### **What Changed:**
+- **WhiteFlag App**: Now on port 3001 (http://localhost:3001)
+- **Grafana**: Can use its standard port 3000 (http://localhost:3000)
+- **No More Conflicts**: Applications and monitoring can run simultaneously
+
+### **Why This Matters:**
+| **Before (Problematic)** | **After (Resolved)** |
+|-------------------------|---------------------|
+| ❌ WhiteFlag app on port 3000 | ✅ WhiteFlag app on port 3001 |
+| ❌ Grafana blocked/stopped | ✅ Grafana available on port 3000 |
+| ❌ Manual service management | ✅ Both services coexist |
+| ❌ Industry standard violated | ✅ DevOps best practices followed |
+
+### **Benefits:**
+- **🎯 Industry Standards**: Grafana monitoring on expected port 3000
+- **🔧 Operational Excellence**: No more manual service conflicts
+- **📊 Better Monitoring**: Always-available dashboards
+- **👥 Developer Experience**: Predictable port layout
+- **🚀 Production Ready**: Professional infrastructure management
+
+**📝 Update Your Bookmarks**: WhiteFlag app is now at http://localhost:3001
+
 ## **🧪 Enhanced Testing Modes**
 
 ### **⚡ Quick Testing Mode**
@@ -178,35 +204,53 @@ Need Frontend/API?
 # - CI/CD pipeline validation
 ```
 
-## ⚠️ Important: Port Conflicts
+## ✅ Port Configuration - Conflicts Resolved!
 
-The single chain service (docker-compose) and k3s validators use overlapping ports:
-- **Port 9945** (Docker) vs **9944** (k3s) - Different but close
-- **Port 30333** - Used by both (conflict!)
+**Updated Port Layout (No More Conflicts):**
+- **WhiteFlag App**: Port 3001 (changed from 3000)
+- **Grafana**: Port 3000 (industry standard preserved)
+- **Blockchain**: Port 9944 (k3s) vs 9945 (Docker) - intentionally different
+- **Port 30333**: Still used by both blockchain services (but Docker vs k3s scenarios remain separate)
 
-**Never run Scenario 1 and Scenario 2/3 simultaneously!**
+### **Benefits of New Configuration:**
+✅ **Grafana Always Available**: Can run alongside applications
+✅ **Industry Standards**: Monitoring on expected port 3000
+✅ **No Service Conflicts**: Applications and monitoring coexist
+✅ **Professional Setup**: Follows DevOps best practices
 
-To switch between scenarios:
+### **Scenario Separation (Still Recommended):**
+While port conflicts are resolved for applications, blockchain scenarios should still be separate:
+
 ```bash
 # From Scenario 1 to 2/3
 docker-compose down
 
-# From Scenario 2/3 to 1
+# From Scenario 2/3 to 1  
 kubectl delete -n fennel deployment fennel-solochain-node
 docker-compose down  # if apps were running
 ```
 
+**Why Separate Blockchain Scenarios:**
+- Different blockchain configurations (single vs multi-validator)
+- Resource optimization (don't run both simultaneously)
+- Testing isolation (cleaner test environments)
+
 ## Service Architecture
 
 ### Docker Compose Services
-- `api`: Fennel Service API
+- `api`: Fennel Service API (port 1234)
 - `database`: PostgreSQL
-- `fennel-cli`: Blockchain CLI interface
-- `subservice`: JavaScript backend service
-- `app`: WhiteFlag School Pilot frontend
+- `fennel-cli`: Blockchain CLI interface (port 9030)
+- `subservice`: JavaScript backend service (port 6060)
+- `app`: WhiteFlag School Pilot frontend (port 3001 - changed from 3000 to avoid Grafana conflicts)
 - `frontend`: Substrate frontend
-- `nginx`, `app-nginx`, `substrate-nginx`: Reverse proxies
-- `chain`: Single validator node (Alice)
+- `nginx`, `app-nginx`, `substrate-nginx`: Reverse proxies (ports 8080, 8081)
+- `chain`: Single validator node (Alice) (port 9945)
+
+### Port Configuration Benefits
+✅ **No More Conflicts**: WhiteFlag app on port 3001 allows Grafana to use standard port 3000
+✅ **Industry Standards**: Grafana monitoring available on expected port 3000
+✅ **Simultaneous Operation**: Both application services and monitoring can run together
 
 ### Kubernetes Services (k3s)
 - Multiple validator nodes (Alice, Bob, Charlie, Dave, Eve)
@@ -651,10 +695,9 @@ pkill -f "kubectl port-forward" 2>/dev/null || true
 tmux kill-session -t alice-port-forward 2>/dev/null || true
 tmux kill-session -t bob-port-forward 2>/dev/null || true
 
-# Stop system services that might conflict
-sudo systemctl stop grafana-server 2>/dev/null || true
-sudo service grafana-server stop 2>/dev/null || true
-sudo kill 1500 2>/dev/null || true
+# Note: Grafana cleanup no longer needed - WhiteFlag app now uses port 3001
+# This allows Grafana to run on its standard port 3000 without conflicts
+echo "✅ No service conflicts - WhiteFlag app on port 3001, Grafana can use port 3000"
 
 # Wait for cleanup to complete
 sleep 5

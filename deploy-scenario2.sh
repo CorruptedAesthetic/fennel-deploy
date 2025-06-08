@@ -805,8 +805,7 @@ clean_environment() {
     cd "$WORKSPACE_DIR"
     docker-compose down 2>/dev/null || true
     
-    # Stop grafana if running
-    sudo systemctl stop grafana-server 2>/dev/null || sudo service grafana-server stop 2>/dev/null || sudo kill 1500 2>/dev/null || true
+    # Note: Grafana cleanup removed - WhiteFlag app now uses port 3001 to avoid conflicts
     
     # Clean up external validators
     docker stop fennel-external-charlie fennel-external-dave fennel-external-eve 2>/dev/null || true
