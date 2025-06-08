@@ -63,9 +63,12 @@ services:
       - POSTGRES_PASS=postgres
       - POSTGRES_NAME=postgres
     depends_on:
-      - 'database'
-      - 'fennel-cli'
-      - 'subservice'
+      database:
+        condition: service_healthy
+      fennel-cli:
+        condition: service_started
+      subservice:
+        condition: service_started
     ports:
       - 1234:1234
     networks:
@@ -81,6 +84,12 @@ services:
       - db:/var/lib/postgresql/data
     networks:
       - fennel_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   fennel-cli:
     #image: ghcr.io/fennellabs/fennel-cli:main

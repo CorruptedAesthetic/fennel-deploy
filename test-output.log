@@ -1,0 +1,445 @@
+
+[0;36m🚀 STARTING AUTOMATED ALICE + BOB DEPLOYMENT[0m
+[0;36m═══════════════════════════════════════════════════════════════════[0m
+[0;34m📋 Overview: This script will deploy a complete 2-validator network[0m
+[0;34m⏱️  Estimated time: ~15 minutes (100% automated except key registration)[0m
+[0;34m⏸️  Manual step: Key registration in Polkadot.js Apps (~60 seconds)[0m
+[0;34m🎯 Success rate: 100% guaranteed with comprehensive validation[0m
+[0;36m═══════════════════════════════════════════════════════════════════[0m
+
+
+[0;36m┌─────────────────────────────────────────────────────────────────┐[0m
+[0;36m│ STEP 1/6: Prerequisites & Environment Setup[0m
+[0;36m│ Time: 15:46:17[0m
+[0;36m└─────────────────────────────────────────────────────────────────┘[0m
+
+[0;32m[2025-06-07 15:46:17][0m 🔧 Checking prerequisites...
+[0;32m[2025-06-07 15:46:18] ✅[0m Prerequisites check completed
+[0;32m[2025-06-07 15:46:18][0m 🧹 Cleaning environment...
+[0;32m[2025-06-07 15:46:18] ✅[0m Environment cleaned
+
+[0;36m┌─────────────────────────────────────────────────────────────────┐[0m
+[0;36m│ STEP 2/6: Phase 0 - Bootnode Infrastructure Deployment[0m
+[0;36m│ Time: 15:46:18[0m
+[0;36m└─────────────────────────────────────────────────────────────────┘[0m
+
+[0;32m[2025-06-07 15:46:18][0m 🎯 PHASE 0: Deploy Dedicated Bootnode Infrastructure
+[0;32m[2025-06-07 15:46:18][0m Starting applications...
+[0;32m[2025-06-07 15:46:22][0m Verifying applications...
+           Name                         Command               State                        Ports                      
+----------------------------------------------------------------------------------------------------------------------
+fennel-deploy_api_1          /bin/bash -c source /opt/v ...   Up      0.0.0.0:1234->1234/tcp,:::1234->1234/tcp        
+fennel-deploy_app-nginx_1    /docker-entrypoint.sh ngin ...   Up      80/tcp, 0.0.0.0:8080->8080/tcp,:::8080->8080/tcp
+fennel-deploy_app_1          /bin/bash -c serve -s /app ...   Up      0.0.0.0:3000->3000/tcp,:::3000->3000/tcp        
+fennel-deploy_database_1     docker-entrypoint.sh postgres    Up      5432/tcp                                        
+fennel-deploy_fennel-cli_1   /app/target/release/fennel ...   Up      0.0.0.0:9030->9030/tcp,:::9030->9030/tcp        
+fennel-deploy_nginx_1        /docker-entrypoint.sh ngin ...   Up      80/tcp, 0.0.0.0:8081->8081/tcp,:::8081->8081/tcp
+fennel-deploy_subservice_1   /bin/bash -c pm2-runtime / ...   Up      0.0.0.0:6060->6060/tcp,:::6060->6060/tcp        
+[0;32m[2025-06-07 15:46:22][0m Setting up k3s...
+=== K3s Installation for Fennel ===
+
+Installing K3s...
+[INFO]  Finding release for channel stable
+[INFO]  Using v1.32.5+k3s1 as release
+[INFO]  Downloading hash https://github.com/k3s-io/k3s/releases/download/v1.32.5+k3s1/sha256sum-amd64.txt
+[INFO]  Skipping binary downloaded, installed k3s matches hash
+[INFO]  Skipping installation of SELinux RPM
+[INFO]  Skipping /usr/local/bin/kubectl symlink to k3s, already exists
+[INFO]  Skipping /usr/local/bin/crictl symlink to k3s, already exists
+[INFO]  Skipping /usr/local/bin/ctr symlink to k3s, command exists in PATH at /usr/bin/ctr
+[INFO]  Creating killall script /usr/local/bin/k3s-killall.sh
+[INFO]  Creating uninstall script /usr/local/bin/k3s-uninstall.sh
+[INFO]  env: Creating environment file /etc/systemd/system/k3s.service.env
+[INFO]  systemd: Creating service file /etc/systemd/system/k3s.service
+[INFO]  systemd: Enabling k3s unit
+[INFO]  No change detected so skipping service start
+
+Waiting for K3s to start...
+✓ K3s is running
+
+Setting up kubectl access...
+✓ kubectl configured successfully
+
+=== K3s Cluster Info ===
+Kubernetes control plane is running at https://127.0.0.1:6443
+CoreDNS is running at https://127.0.0.1:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+Metrics-server is running at https://127.0.0.1:6443/api/v1/namespaces/kube-system/services/https:metrics-server:https/proxy
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+NAME              STATUS   ROLES                  AGE   VERSION
+desktop-ah3ie72   Ready    control-plane,master   16h   v1.32.5+k3s1
+
+=== K3s Setup Complete! ===
+
+You can now deploy Fennel by running:
+  cd /home/neurosx/WORKING_WORKSPACE/fennel-solonet-2503UPGRADE/kubernetes
+  ./deploy-fennel.sh
+
+To uninstall K3s later, run:
+  /usr/local/bin/k3s-uninstall.sh
+[0;32m[2025-06-07 15:46:36][0m Waiting for k3s to be ready...
+node/desktop-ah3ie72 condition met
+[0;32m[2025-06-07 15:46:36][0m Generating static bootnode keys...
+[0;34m[2025-06-07 15:46:36][0m Generating static bootnode keys...
+[0;34m[2025-06-07 15:46:36][0m Using openssl to generate keys (subkey not available)...
+[0;32m✅ Generated boot0.key and boot1.key[0m
+[0;34m[2025-06-07 15:46:36][0m Updating bootnode secret manifest...
+[0;32m✅ Updated secret manifest[0m
+[0;34m[2025-06-07 15:46:36][0m Secret will contain the following files:
+📋 Bootnode key files:
+  - /keys/boot0.key (for pod-0)
+  - /keys/boot1.key (for pod-1)
+📝 Mount path: extraSecretMounts.secretName = bootnode-static-keys
+[0;32m✅ Cleaned up temporary key files[0m
+[0;32m[2025-06-07 15:46:36][0m Deploying dedicated bootnode infrastructure...
+[0;34m[2025-06-07 15:46:36][0m === PHASE 0: Deploying Dedicated Bootnodes ===
+[0;34m[2025-06-07 15:46:36][0m Creating namespace 'fennel'...
+[0;32m✅ Namespace ready[0m
+[0;34m[2025-06-07 15:46:36][0m Setting up Helm repository...
+[0;32m✅ Helm repository configured[0m
+[0;34m[2025-06-07 15:46:36][0m Applying security and resilience manifests...
+secret/bootnode-static-keys created
+networkpolicy.networking.k8s.io/fennel-network-policy created
+networkpolicy.networking.k8s.io/fennel-bootnodes-policy created
+poddisruptionbudget.policy/fennel-validators-pdb created
+poddisruptionbudget.policy/fennel-bootnodes-pdb created
+[0;32m✅ Manifests applied[0m
+[0;34m[2025-06-07 15:46:37][0m Deploying bootnodes with static keys...
+Release "fennel-bootnodes" does not exist. Installing it now.
+NAME: fennel-bootnodes
+LAST DEPLOYED: Sat Jun  7 15:46:37 2025
+NAMESPACE: fennel
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+[0;32m✅ PHASE 0 COMPLETE: Dedicated bootnodes deployed![0m
+[0;32m[2025-06-07 15:47:33][0m Waiting for bootnodes to be ready with comprehensive validation...
+[0;32m[2025-06-07 15:47:33][0m 🔍 Waiting for pod fennel-bootnodes-0 to be completely ready (timeout: 300s)...
+[0;34m[2025-06-07 15:47:34] ℹ️[0m Pod fennel-bootnodes-0 exists
+pod/fennel-bootnodes-0 condition met
+[0;34m[2025-06-07 15:47:34] ℹ️[0m Verifying pod fennel-bootnodes-0 stability...
+[0;32m[2025-06-07 15:47:39] ✅[0m ✅ Pod fennel-bootnodes-0 is completely ready and stable
+[0;32m[2025-06-07 15:47:39][0m 🔍 Waiting for pod fennel-bootnodes-1 to be completely ready (timeout: 300s)...
+[0;34m[2025-06-07 15:47:39] ℹ️[0m Pod fennel-bootnodes-1 exists
+pod/fennel-bootnodes-1 condition met
+[0;34m[2025-06-07 15:47:39] ℹ️[0m Verifying pod fennel-bootnodes-1 stability...
+[0;32m[2025-06-07 15:47:44] ✅[0m ✅ Pod fennel-bootnodes-1 is completely ready and stable
+[0;32m[2025-06-07 15:47:44][0m Collecting bootnode information with comprehensive validation...
+[0;32m[2025-06-07 15:47:44] ✅[0m Bootnode IPs collected: 10.42.0.227, 10.42.0.230
+[0;32m[2025-06-07 15:47:45] ✅[0m Bootnode peer IDs collected: 12D3KooWJ4KwoDzXYc6om4gM4EQiyxDRHVwjrNBBH8jPmN36nFBv, 12D3KooWG56PWzWN3WE123JVytbzw662iYf7cit9LjdoBeupxAq8
+[0;32m[2025-06-07 15:47:45] ✅[0m Phase 0 Complete - Bootnode Information:
+[0;34m[2025-06-07 15:47:45] ℹ️[0m Bootnode-0: 10.42.0.227 → 12D3KooWJ4KwoDzXYc6om4gM4EQiyxDRHVwjrNBBH8jPmN36nFBv
+[0;34m[2025-06-07 15:47:45] ℹ️[0m Bootnode-1: 10.42.0.230 → 12D3KooWG56PWzWN3WE123JVytbzw662iYf7cit9LjdoBeupxAq8
+
+[0;36m┌─────────────────────────────────────────────────────────────────┐[0m
+[0;36m│ STEP 3/6: Phase 1 - Alice Bootstrap Deployment[0m
+[0;36m│ Time: 15:47:45[0m
+[0;36m└─────────────────────────────────────────────────────────────────┘[0m
+
+[0;32m[2025-06-07 15:47:45][0m 🎯 PHASE 1: Single Validator Bootstrap (Alice)
+[0;32m[2025-06-07 15:47:45][0m Deploying Alice with bootstrap configuration...
+[0;34m[2025-06-07 15:47:45][0m Checking prerequisites...
+[0;34m[2025-06-07 15:47:45][0m === PHASE 1: Alice Bootstrap Deployment ===
+[0;34m[2025-06-07 15:47:45][0m Creating namespace 'fennel'...
+[0;32m✅ Namespace ready[0m
+[0;34m[2025-06-07 15:47:45][0m Setting up Helm repository...
+[0;32m✅ Helm repository configured[0m
+[0;34m[2025-06-07 15:47:45][0m Deploying Alice (single validator bootstrap)...
+Release "fennel-solochain" does not exist. Installing it now.
+NAME: fennel-solochain
+LAST DEPLOYED: Sat Jun  7 15:47:45 2025
+NAMESPACE: fennel
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+[0;32m✅ PHASE 1 COMPLETE: Alice bootstrap deployed![0m
+
+[1;33m⚠️  NEXT STEPS:[0m
+1. Set up port forwarding: kubectl port-forward -n fennel svc/fennel-solochain-node 9944:9944
+2. Generate Alice's keys: curl -H 'Content-Type: application/json' -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys"}' http://localhost:9944
+3. Register keys via Polkadot.js Apps: https://polkadot.js.org/apps/?rpc=ws%3A%2F%2F127.0.0.1%3A9944
+4. Then run: ./deploy-phases.sh phase2
+[0;32m[2025-06-07 15:48:05][0m 🔍 Waiting for pod fennel-solochain-node-0 to be completely ready (timeout: 300s)...
+[0;34m[2025-06-07 15:48:05] ℹ️[0m Pod fennel-solochain-node-0 exists
+pod/fennel-solochain-node-0 condition met
+[0;34m[2025-06-07 15:48:05] ℹ️[0m Verifying pod fennel-solochain-node-0 stability...
+[0;32m[2025-06-07 15:48:10] ✅[0m ✅ Pod fennel-solochain-node-0 is completely ready and stable
+[0;32m[2025-06-07 15:48:10][0m Waiting for Alice to start producing blocks...
+[0;32m[2025-06-07 15:48:43][0m Verifying Alice is producing blocks...
+2025-06-07 19:48:36.002  INFO tokio-runtime-worker sc_basic_authorship::basic_authorship: 🎁 Prepared block for proposing at 3 (0 ms) hash: 0x462ce21ef383adcb75043ad3bb29e36178ef985473076590a19e9b0e860c5165; parent_hash: 0x48c2…9bdf; end: NoMoreTransactions; extrinsics_count: 1    
+2025-06-07 19:48:36.003  INFO tokio-runtime-worker substrate: 🏆 Imported #3 (0x48c2…9bdf → 0x599a…ab12)    
+[0;32m[2025-06-07 15:48:43] ✅[0m Phase 1 Complete: Alice deployed and producing blocks
+
+[0;36m┌─────────────────────────────────────────────────────────────────┐[0m
+[0;36m│ STEP 4/6: Phase 2 - Bob Scaling Deployment[0m
+[0;36m│ Time: 15:48:43[0m
+[0;36m└─────────────────────────────────────────────────────────────────┘[0m
+
+[0;32m[2025-06-07 15:48:43][0m 🎯 PHASE 2: Scale to Multi-Validator (Add Bob)
+[0;32m[2025-06-07 15:48:43][0m 🔍 Previewing deployment changes...
+fennel, fennel-solochain-node, StatefulSet (apps) has changed:
+  # Source: node/templates/statefulset.yaml
+  apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: fennel-solochain-node
+    labels:
+      helm.sh/chart: node-5.15.0
+      app.kubernetes.io/name: node
+      app.kubernetes.io/instance: fennel-solochain
+      app.kubernetes.io/component: substrate-node
+      chain: local
+      release: fennel-solochain
+      role: authority
+      app.kubernetes.io/version: "sha-2ea7777df54a4bc1d113591d6a2351930bae3806"
+      app.kubernetes.io/managed-by: Helm
+      pruning: archive
+      database: rocksdb
+  spec:
+    selector:
+      matchLabels:
+        app.kubernetes.io/name: node
+        app.kubernetes.io/instance: fennel-solochain
+        app.kubernetes.io/component: substrate-node
+    podManagementPolicy: OrderedReady
+-   replicas: 1
++   replicas: 2
+    serviceName: fennel-solochain-node
+    template:
+      metadata:
+        labels:
+          helm.sh/chart: node-5.15.0
+          app.kubernetes.io/name: node
+          app.kubernetes.io/instance: fennel-solochain
+          app.kubernetes.io/component: substrate-node
+          chain: local
+          release: fennel-solochain
+          role: authority
+          app.kubernetes.io/version: "sha-2ea7777df54a4bc1d113591d6a2351930bae3806"
+          app.kubernetes.io/managed-by: Helm
+          pruning: archive
+          database: rocksdb
+      spec:
+        initContainers:
+          - name: persist-generated-node-key
+            image: ghcr.io/corruptedaesthetic/uptodatefennelnetmp:sha-2ea7777df54a4bc1d113591d6a2351930bae3806
+            command: [ "/bin/sh" ]
+            args:
+              - -c
+              - |
+                set -eu 
+                NODE_KEY_PATH="/keystore/node-key"
+                if [ -f "${NODE_KEY_PATH}" ]; then
+                  echo "Node key already exists, skipping node key generation"
+                else
+                  fennel-node key generate-node-key --file ${NODE_KEY_PATH} \
+                  && echo "Generate node key into Keystore" \
+                  || echo "Failed to insert key into Keystore."
+                fi
+                NODE_PEER_ID="$(fennel-node key inspect-node-key --file ${NODE_KEY_PATH})"
+                echo "Node key present in ${NODE_KEY_PATH} with peer-id: ${NODE_PEER_ID}"
+            resources:
+              {}
+            volumeMounts:
+              - mountPath: /keystore
+                name: chain-keystore
+          - name: retrieve-service-info
+            image: paritytech/kubetools-kubectl:latest
+            command: [ "/bin/sh" ]
+            args:
+              - -c
+              - |
+                set -eu -o pipefail 
+                POD_INDEX="${HOSTNAME##*-}"
+            resources:
+              {}
+            volumeMounts:
+              - mountPath: /chain-data
+                name: chain-data
+        containers:
+          - name: local
+            image: ghcr.io/corruptedaesthetic/uptodatefennelnetmp:sha-2ea7777df54a4bc1d113591d6a2351930bae3806
+            imagePullPolicy: Always
+            command: [ "/bin/sh" ]
+            args:
+              - -c
+              - |
+                set -eu
+                POD_INDEX="${HOSTNAME##*-}"
+                RELAY_CHAIN_P2P_PORT="30333"
+                echo "RELAY_CHAIN_P2P_PORT=${RELAY_CHAIN_P2P_PORT}"
+                exec fennel-node \
+                  --name=${POD_NAME} \
+                  --base-path=/chain-data \
+                  --keystore-path=/keystore \
+                  --chain=${CHAIN} \
+                  --validator \
+                  --database=rocksdb \
+                  --state-pruning=archive \
+                  --prometheus-external \
+                  --prometheus-port 9615 \
+                  --unsafe-rpc-external \
+                  --rpc-port=9944 \
+                  --rpc-cors=all \
+-                 --rpc-methods=unsafe \
+                  --node-key-file /keystore/node-key \
+-                 --alice \
+-                 --force-authoring \
+                  -lruntime=debug \
++                 --force-authoring \
+                  --listen-addr=/ip4/0.0.0.0/tcp/30333 \
+            env:
+              - name: CHAIN
+                value: local
+              - name: NODE_NAME
+                value: "$(POD_NAME)"
+              - name: POD_NAME
+                valueFrom:
+                  fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.name
+            ports:
+              - containerPort: 9944
+                name: rpc
+              - containerPort: 9615
+                name: prometheus
+              - containerPort: 30333
+                name: p2p
+            # On startup, retry the connection to the /health endpoint every 10s for failureThreshold * 10 = 300s before killing the container
+            startupProbe:
+              failureThreshold: 30
+              periodSeconds: 10
+              httpGet:
+                path: /health
+                port: rpc
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 2Gi
+              requests:
+                cpu: 500m
+                memory: 1Gi
+            volumeMounts:
+              - mountPath: /chain-data
+                name: chain-data
+              - mountPath: /keystore
+                name: chain-keystore
+        serviceAccountName: fennel-solochain-node
+        securityContext:
+          fsGroup: 1001
+          runAsGroup: 1001
+          runAsUser: 1001
+        terminationGracePeriodSeconds: 60
+        volumes:
+    volumeClaimTemplates:
+      - apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: chain-data
+        spec:
+          accessModes: [ "ReadWriteOnce" ]
+          storageClassName: 
+          resources:
+            requests:
+              storage: 50Gi
+      - apiVersion: v1
+        kind: PersistentVolumeClaim
+        metadata:
+          name: chain-keystore
+        spec:
+          accessModes: [ReadWriteOnce]
+          storageClassName: 
+          resources:
+            requests:
+              storage: 100Mi
+fennel, fennel-solochain-node-1, Service (v1) has been added:
+- 
++ apiVersion: v1
++ kind: Service
++ metadata:
++   name: fennel-solochain-node-1
++   labels:
++     chain: local
++     release: fennel-solochain
++     role: authority
++     node: fennel-solochain-node-1
++     instance: fennel-solochain-node-1
++   annotations:
++ spec:
++   type: ClusterIP
++   clusterIP: None
++   selector:
++     app.kubernetes.io/name: node
++     app.kubernetes.io/instance: fennel-solochain
++     app.kubernetes.io/component: substrate-node
++     statefulset.kubernetes.io/pod-name: fennel-solochain-node-1
++   ports:
++     - port: 9944
++       name: rpc
++       targetPort: rpc
++     - port: 9933
++       name: http-rpc
++       targetPort: rpc
++     - port: 9955
++       name: websocket-rpc
++       targetPort: rpc
++     - port: 9615
++       name: prometheus
++       targetPort: prometheus
+fennel, fennel-solochain-node-1-relay-chain-p2p, Service (v1) has been added:
+- 
++ # Source: node/templates/service.yaml
++ apiVersion: v1
++ kind: Service
++ metadata:
++   name: fennel-solochain-node-1-relay-chain-p2p
++   labels:
++     chain: local
++     release: fennel-solochain
++     role: authority
++   annotations:
++ spec:
++   type: ClusterIP
++   publishNotReadyAddresses: true
++   selector:
++     app.kubernetes.io/name: node
++     app.kubernetes.io/instance: fennel-solochain
++     app.kubernetes.io/component: substrate-node
++     statefulset.kubernetes.io/pod-name: fennel-solochain-node-1
++   ports:
++     - name: p2p
++       port: 30333
++       targetPort: p2p
+
+[0;36m⏳ Review the deployment changes above, then press ENTER to continue...[0m
+[0;32m[2025-06-07 15:48:49][0m Deploying Alice + Bob configuration...
+[0;34m[2025-06-07 15:48:49][0m Checking prerequisites...
+[0;34m[2025-06-07 15:48:49][0m === PHASE 2: Scaling to Alice + Bob ===
+[0;34m[2025-06-07 15:48:49][0m Scaling to 2 validators (Alice + Bob)...
+Release "fennel-solochain" has been upgraded. Happy Helming!
+NAME: fennel-solochain
+LAST DEPLOYED: Sat Jun  7 15:48:50 2025
+NAMESPACE: fennel
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+[0;32m✅ PHASE 2 COMPLETE: Alice + Bob deployed![0m
+
+[1;33m⚠️  NEXT STEPS:[0m
+1. Temporarily enable unsafe RPC for Bob: helm upgrade fennel-solochain parity/node --reuse-values --set node.allowUnsafeRpcMethods=true -n fennel
+2. Set up port forwarding to Bob: kubectl port-forward -n fennel fennel-solochain-node-1 9945:9944
+3. Generate Bob's keys: curl -H 'Content-Type: application/json' -d '{"id":1, "jsonrpc":"2.0", "method": "author_rotateKeys"}' http://localhost:9945
+4. Register Bob's keys via Polkadot.js Apps
+5. SECURITY: Disable unsafe RPC: helm upgrade fennel-solochain parity/node --reuse-values --set node.allowUnsafeRpcMethods=false -n fennel
+6. Ready for Phase 3 (external validators)
+[0;32m[2025-06-07 15:49:21][0m 🔍 Waiting for pod fennel-solochain-node-0 to be completely ready (timeout: 300s)...
+[0;34m[2025-06-07 15:49:21] ℹ️[0m Pod fennel-solochain-node-0 exists
+pod/fennel-solochain-node-0 condition met
+[0;34m[2025-06-07 15:49:21] ℹ️[0m Verifying pod fennel-solochain-node-0 stability...
+[0;32m[2025-06-07 15:49:27] ✅[0m ✅ Pod fennel-solochain-node-0 is completely ready and stable
+[0;32m[2025-06-07 15:49:27][0m 🔍 Waiting for pod fennel-solochain-node-1 to be completely ready (timeout: 300s)...
+[0;34m[2025-06-07 15:49:27] ℹ️[0m Pod fennel-solochain-node-1 exists
+pod/fennel-solochain-node-1 condition met
+[0;34m[2025-06-07 15:49:27] ℹ️[0m Verifying pod fennel-solochain-node-1 stability...
+[0;32m[2025-06-07 15:49:32] ✅[0m ✅ Pod fennel-solochain-node-1 is completely ready and stable
+[0;32m[2025-06-07 15:49:32][0m Waiting for validators to connect and stabilize...
