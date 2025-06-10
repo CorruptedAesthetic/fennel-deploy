@@ -1,0 +1,17 @@
+fennel-solonet/kubernetes/test-bootnode-connectivity.sh,241,7802
+fennel-solonet/kubernetes/bootnode-values.yaml,76,2261
+fennel-solonet/kubernetes/deploy-fennel.sh,63,2403
+fennel-solonet/kubernetes/manifests/network-policy.yaml,104,2156
+fennel-solonet/kubernetes/manifests/bootnode-static-keys-secret.yaml,31,1354
+fennel-solonet/kubernetes/manifests/pod-disruption-budget.yaml,29,726
+fennel-solonet/kubernetes/deploy-phases.sh,383,12857
+fennel-solonet/kubernetes/setup-k3s.sh,56,1235
+fennel-solonet/kubernetes/values/bootnodes.yaml,78,2475
+fennel-solonet/kubernetes/values/rpc.yaml,145,3319
+fennel-solonet/kubernetes/values/bootstrap.yaml,41,1382
+fennel-solonet/kubernetes/values/values-base.yaml,145,5017
+fennel-solonet/kubernetes/values/monitoring.yaml,64,1311
+fennel-solonet/kubernetes/values/scale-2.yaml,41,1684
+fennel-solonet/kubernetes/values/testing.yaml,56,1501
+fennel-solonet/kubernetes/test-external-validators.sh,409,14712
+fennel-solonet/kubernetes/maintain-port-forwards.sh,59,1745

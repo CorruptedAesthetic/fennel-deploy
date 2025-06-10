@@ -1,0 +1,17 @@
+apiVersion: v2
+name: fennel-solonet
+description: A Helm chart to deploy Fennel solochain nodes
+type: application
+version: 1.0.0
+maintainers:
+  - name: Fennel Labs
+    url: https://github.com/your-org/fennel-deploy
+    email: devops@fennellabs.com
+keywords:
+  - blockchain
+  - substrate
+  - polkadot-sdk
+  - solochain
+home: https://github.com/your-org/fennel-deploy
+sources:
+  - https://github.com/your-org/fennel-deploy
