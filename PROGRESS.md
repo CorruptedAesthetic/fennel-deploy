@@ -13,7 +13,7 @@
 | 1. Inventory & Freeze | ✅ COMPLETE | 2025-06-10 | `e35da06` | Backup tag, Helm charts, validation tools |
 | 2. Carve out infra-gitops | ✅ COMPLETE | 2025-06-10 | `cf53e77` | Private repo created, manifests moved |
 | 3. Clean up fennel-deploy | ✅ COMPLETE | 2025-06-10 | `c3a87a5` | Services reorganized, local-dev created |
-| 4. Wire deterministic CI | ✅ COMPLETE | 2025-06-10 | `pending` | srtool, Kind tests, digest automation |
+| 4. Wire deterministic CI | ✅ COMPLETE | 2025-06-10 | `24b9f2c` | srtool, Kind tests, digest automation |
 | 5. Bootstrap GitOps on AKS | ⏳ NEXT | - | - | Flux/ArgoCD setup |
 | 6. Green-light soak in dev | ⏸️ PENDING | - | - | 24h monitoring validation |
 | 7. Promote staging → prod | ⏸️ PENDING | - | - | Environment promotion |
@@ -122,7 +122,7 @@
 ## 📋 Step 4: Wire Deterministic CI ✅
 
 **Completion Date**: 2025-06-10  
-**Git Commit**: `pending` - "feat: implement deterministic CI with srtool, Kind tests, and digest automation"  
+**Git Commit**: `24b9f2c` - "feat: implement deterministic CI with srtool, Kind tests, and digest automation"  
 
 ### ✅ Completed Tasks:
 - [x] **4.1** Enhanced existing srtool workflow from fennel-solonet submodule
