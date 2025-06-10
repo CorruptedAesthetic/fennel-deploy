@@ -23,4 +23,26 @@ build/
 
 # OS files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Kubernetes and GitOps exclusions
+# (Production manifests are in separate infra-gitops repo)
+*.kubeconfig
+kubeconfig*
+.kube/
+k8s-manifests/
+kubernetes/secrets/
+*.key
+*.crt
+*.pem
+
+# Helm and Kustomize temp files
+*.tgz
+charts/*/charts/
+charts/*/Chart.lock
+kustomization.yaml.bak
+
+# Local development overrides
+local-dev/override-*
+local-dev/*.env
+local-dev/secrets/ 

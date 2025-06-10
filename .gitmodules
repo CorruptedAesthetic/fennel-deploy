@@ -1,21 +1,21 @@
-[submodule "fennel-cli"]
-	path = fennel-cli
+[submodule "services/fennel-cli"]
+	path = services/fennel-cli
 	url = https://github.com/CorruptedAesthetic/fennel-cli.git
-[submodule "fennel-service-api"]
-	path = fennel-service-api
+[submodule "services/fennel-service-api"]
+	path = services/fennel-service-api
 	url = https://github.com/CorruptedAesthetic/fennel-service-api.git
 	branch = master
-[submodule "subservice"]
-	path = subservice
+[submodule "services/subservice"]
+	path = services/subservice
 	url = https://github.com/CorruptedAesthetic/subservice.git
-[submodule "whiteflag-schoolpilot"]
-	path = whiteflag-schoolpilot
+[submodule "services/whiteflag-schoolpilot"]
+	path = services/whiteflag-schoolpilot
 	url = https://github.com/CorruptedAesthetic/whiteflag-schoolpilot.git
 [submodule "fennel-solonet"]
 	path = fennel-solonet
 	url = https://github.com/CorruptedAesthetic/fennel-solonet.git
-[submodule "nginx"]
-	path = nginx
+[submodule "services/nginx"]
+	path = services/nginx
 	url = https://github.com/CorruptedAesthetic/fennel-nginx.git
 [submodule "app-nginx"]
 	path = app-nginx
