@@ -12,8 +12,8 @@
 |------|--------|----------------|----------------|-------|
 | 1. Inventory & Freeze | ✅ COMPLETE | 2025-06-10 | `e35da06` | Backup tag, Helm charts, validation tools |
 | 2. Carve out infra-gitops | ✅ COMPLETE | 2025-06-10 | `cf53e77` | Private repo created, manifests moved |
-| 3. Clean up fennel-deploy | ⏳ NEXT | - | - | Reorganize services, delete kubernetes/ |
-| 4. Wire deterministic CI | ⏸️ PENDING | - | - | srtool, Kind tests, digest automation |
+| 3. Clean up fennel-deploy | ✅ COMPLETE | 2025-06-10 | `c3a87a5` | Services reorganized, local-dev created |
+| 4. Wire deterministic CI | ⏳ NEXT | - | - | srtool, Kind tests, digest automation |
 | 5. Bootstrap GitOps on AKS | ⏸️ PENDING | - | - | Flux/ArgoCD setup |
 | 6. Green-light soak in dev | ⏸️ PENDING | - | - | 24h monitoring validation |
 | 7. Promote staging → prod | ⏸️ PENDING | - | - | Environment promotion |
@@ -88,23 +88,34 @@
 
 ---
 
-## 📋 Step 3: Clean up fennel-deploy ⏳
+## 📋 Step 3: Clean up fennel-deploy ✅
 
-**Status**: Ready to start  
-**Estimated Duration**: ½ day  
+**Completion Date**: 2025-06-10  
+**Git Commit**: `c3a87a5` - "feat: reorganize repository structure (Step 3)"  
 
-### 🎯 Goals:
-- [ ] **3.1** Move existing manifests to Helm charts (convert YAML to templates)
-- [ ] **3.2** Reorganize services as shown in diagram
-- [ ] **3.3** Create local-dev directory for development tools
-- [ ] **3.4** Delete `fennel-solonet/kubernetes/` directory
-- [ ] **3.5** Update `.gitignore` to exclude remaining k8s state files
+### ✅ Completed Tasks:
+- [x] **3.1** Verified manifests already moved to infra-gitops (duplicates cleaned)
+- [x] **3.2** Reorganized services as shown in diagram:
+  - Moved submodules to `services/` directory
+  - Updated `.gitmodules` paths for new structure
+- [x] **3.3** Created `local-dev/` directory for development tools:
+  - Moved `docker-compose*.yml` files
+  - Moved k3s setup and testing scripts
+  - Created comprehensive README for local development
+- [x] **3.4** Deleted `fennel-solonet/kubernetes/` directory
+- [x] **3.5** Updated `.gitignore` with k8s and GitOps exclusions
 
-### 📁 Files to Move/Reorganize:
-- Convert remaining Helm values to chart templates
-- Move services to `services/` directory structure
-- Relocate docker-compose files to `local-dev/`
-- Remove deployment scripts from kubernetes directory
+### 📊 Key Changes:
+- **Services reorganized**: 5 submodules moved to `services/` directory
+- **Documentation preserved**: Important docs moved to `docs/` directory
+- **Development tools**: Consolidated in `local-dev/` with README
+- **Repository structure**: Now follows Polkadot SDK standards
+
+### 🎯 Outcomes:
+- ✅ Clean separation of concerns achieved
+- ✅ Local development workflow preserved
+- ✅ Production deployment isolated to infra-gitops
+- ✅ Repository ready for deterministic CI (Step 4)
 
 ---
 
@@ -143,8 +154,8 @@ git clean -fd
 - **Architecture Diagram**: [mermaidgraphdraft1.txt](../NOTES/REPOORGANIZATIONJUNE2025/mermaidgraphdraft1.txt)
 - **Parity Resources**: `~/WORKING_WORKSPACE/Cloud Infrastructure Fennel/GENERIC-ECO-DIRECTORIES/`
 - **Infra-GitOps Repo**: `/home/neurosx/WORKING_WORKSPACE/infra-gitops`
-- **Current Status**: Ready for Step 3 - Clean up fennel-deploy
+- **Current Status**: Ready for Step 4 - Wire deterministic CI
 
 ---
 
-*Last Updated: 2025-06-10 18:25 UTC* 
+*Last Updated: 2025-06-10 18:50 UTC* 
