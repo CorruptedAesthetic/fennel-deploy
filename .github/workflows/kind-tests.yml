@@ -103,15 +103,16 @@ jobs:
           # Create namespace
           kubectl create namespace fennel-test || true
           
-          # Deploy fennel-solonet chart with test values
-          helm upgrade --install fennel-solonet ./charts/fennel-solonet/ \
-            --namespace fennel-test \
-            --set image.repository=parity/polkadot \
-            --set image.tag=latest \
-            --set replicaCount=1 \
-            --set persistence.enabled=false \
-            --set service.type=ClusterIP \
-            --dry-run --debug
+                     # Deploy fennel-solonet chart with test values
+           helm upgrade --install fennel-solonet ./charts/fennel-solonet/ \
+             --namespace fennel-test \
+             --set image.repository=parity/polkadot \
+             --set image.tag=latest \
+             --set node.chain=local \
+             --set replicaCount=1 \
+             --set persistence.enabled=false \
+             --set service.type=ClusterIP \
+             --dry-run --debug
 
       - name: Test local-dev setup
         run: |

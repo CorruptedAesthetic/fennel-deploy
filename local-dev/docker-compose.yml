@@ -1,7 +1,7 @@
 services:
   app-nginx:
     #image: ghcr.io/fennellabs/app-nginx:main
-    build: ./app-nginx
+    build: ../app-nginx
     ports:
       - 8080:8080
     depends_on:
@@ -11,7 +11,7 @@ services:
 
   nginx:
     #image: ghcr.io/fennellabs/fennel-nginx:master
-    build: ./nginx
+    build: ../services/nginx/nginx
     volumes:
       - staticvol:/opt/app/static
       - mediavol:/opt/app/mediafiles
@@ -24,7 +24,7 @@ services:
 
   app:
     #image: ghcr.io/fennellabs/whiteflag-schoolpilot:v1.2
-    build: ./whiteflag-schoolpilot/
+    build: ../services/whiteflag-schoolpilot/whiteflag-schoolpilot/
     environment:
       - API_URL=http://localhost/api/
     entrypoint: /bin/bash
@@ -38,7 +38,7 @@ services:
     entrypoint: /bin/bash
     command: -c "source /opt/venv/bin/activate && /opt/app/runner.sh init-all-run"
     #image: ghcr.io/fennellabs/fennel-service-api:master
-    build: ./fennel-service-api/
+    build: ../services/fennel-service-api/fennel-service-api/
     volumes:
       - staticvol:/opt/app/static
       - mediavol:/opt/app/mediafiles
@@ -81,7 +81,7 @@ services:
 
   fennel-cli:
     #image: ghcr.io/fennellabs/fennel-cli:main
-    build: ./fennel-cli/
+    build: ../services/fennel-cli/fennel-cli/
     entrypoint:
       - /app/target/release/fennel-cli
       - start-api
@@ -92,7 +92,7 @@ services:
 
   subservice:
     #image: ghcr.io/fennellabs/subservice:main
-    build: ./subservice/
+    build: ../services/subservice/subservice/
     entrypoint: /bin/bash
     command: -c "pm2-runtime /app/build/src/server.js"
     ports:

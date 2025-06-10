@@ -1,0 +1,1 @@
+ghcr.io/corruptedaesthetic/fennel-deploy/fennel-solonet:local-20250610-191436

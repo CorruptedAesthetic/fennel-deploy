@@ -134,6 +134,7 @@ if [ "$SKIP_HELM" = false ]; then
                 if helm template "$chart_name" "$chart" \
                     --set image.tag=test \
                     --set replicaCount=1 \
+                    --set node.chain=local \
                     > /dev/null; then
                     success "Chart template passed: $chart_name"
                 else

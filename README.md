@@ -73,7 +73,7 @@ kind create cluster --name fennel-test
 # Deploy with Helm
 helm upgrade --install fennel-solonet ./charts/fennel-solonet/ \
   --namespace fennel-test --create-namespace \
-  --set replicaCount=1 --set persistence.enabled=false
+  --set node.chain=local --set replicaCount=1 --set persistence.enabled=false
 ```
 
 ## 🏭 Production Deployment

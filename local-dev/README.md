@@ -59,7 +59,7 @@ docker-compose -f docker-compose.yml -f docker-compose.apps.yml up -d
 kind create cluster --name fennel-test
 helm upgrade --install fennel-solonet ../charts/fennel-solonet/ \
   --namespace fennel-test --create-namespace \
-  --set replicaCount=1 --set persistence.enabled=false
+  --set node.chain=local --set replicaCount=1 --set persistence.enabled=false
 ```
 
 ## Production Deployment

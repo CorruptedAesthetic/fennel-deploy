@@ -1,0 +1,11 @@
+build:
+  timestamp: 2025-06-10T23:47:08Z
+  commit: d0fa4557934e43215516185da6e7cbb69ee60741
+  branch: experiment
+  wasm_hash: 0x0000000000000000000000000000000000000000000000000000000000000000
+  srtool_version: 1.84.1
+images:
+  fennel-solonet:
+    image: ghcr.io/corruptedaesthetic/fennel-deploy/fennel-solonet:local-20250610-191436
+    digest: "
+local-build"
