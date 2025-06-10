@@ -1,0 +1,386 @@
+name: Deterministic Build & Test
+
+on:
+  push:
+    branches: [ main, develop, experiment ]
+    paths:
+      - 'fennel-solonet/**'
+      - 'charts/**'
+      - 'services/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'fennel-solonet/**'
+      - 'charts/**'
+      - 'services/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # =============================================================================
+  # 1. BUILD: Deterministic runtime + container images
+  # =============================================================================
+  deterministic-build:
+    runs-on: ubuntu-22.04
+    outputs:
+      wasm-hash: ${{ steps.wasm.outputs.hash }}
+      fennel-image: ${{ steps.meta-fennel.outputs.tags }}
+      fennel-digest: ${{ steps.build-fennel.outputs.digest }}
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Free up disk space for builds
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost || true
+          sudo apt-get clean
+          df -h
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # =============================================================================
+      # DETERMINISTIC RUNTIME BUILD with srtool
+      # =============================================================================
+      - name: Build runtime with srtool & extract Wasm hash
+        id: wasm
+        working-directory: ./fennel-solonet
+        run: |
+          set -euo pipefail
+          echo "🛠️  Running srtool to build compact runtime…"
+          
+          # Build runtime inside srtool container (deterministic output)
+          docker run --rm \
+            -v "${PWD}":/build \
+            -e RUNTIME_DIR=runtime/fennel \
+            -e PACKAGE=fennel-node-runtime \
+            --workdir /build \
+            paritytech/srtool:1.84.1 /srtool/build
+
+          # Extract deterministic hash
+          HASH=$(sha256sum runtime/fennel/target/srtool/release/wbuild/fennel-node-runtime/fennel_node_runtime.compact.wasm | awk '{print "0x"$1}')
+          echo "WASM_HASH=$HASH" >> $GITHUB_ENV
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+          echo "✅ Deterministic Wasm hash: $HASH"
+          
+          # Store hash for artifact
+          mkdir -p ../artifacts
+          echo "$HASH" > ../artifacts/wasm-hash.txt
+
+      # =============================================================================
+      # FENNEL-SOLONET IMAGE BUILD
+      # =============================================================================
+      - name: Extract metadata for fennel-solonet
+        id: meta-fennel
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/fennel-solonet
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Fennel Solonet
+            org.opencontainers.image.description=Polkadot SDK solochain node
+            org.parity.wasm.hash=${{ env.WASM_HASH }}
+
+      - name: Build and push fennel-solonet image
+        id: build-fennel
+        uses: docker/build-push-action@v5
+        with:
+          context: ./fennel-solonet
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-fennel.outputs.tags }}
+          labels: ${{ steps.meta-fennel.outputs.labels }}
+          build-args: |
+            WASM_HASH=${{ env.WASM_HASH }}
+          cache-from: type=gha,scope=fennel-solonet
+          cache-to: type=gha,mode=max,scope=fennel-solonet
+          provenance: false
+
+      # =============================================================================
+      # FENNEL-SERVICE-API IMAGE BUILD
+      # =============================================================================
+      - name: Extract metadata for fennel-service-api
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/fennel-service-api
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=Fennel Service API
+            org.opencontainers.image.description=Django REST API for Fennel blockchain
+
+      - name: Build and push fennel-service-api image
+        id: build-api
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/fennel-service-api/fennel-service-api
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
+          cache-from: type=gha,scope=fennel-service-api
+          cache-to: type=gha,mode=max,scope=fennel-service-api
+          provenance: false
+
+      # =============================================================================
+      # STORE BUILD ARTIFACTS
+      # =============================================================================
+      - name: Generate build manifest
+        run: |
+          mkdir -p ./artifacts
+          cat > ./artifacts/build-manifest.yaml << EOF
+          build:
+            timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            commit: ${{ github.sha }}
+            branch: ${{ github.ref_name }}
+            wasm_hash: ${{ env.WASM_HASH }}
+          images:
+            fennel-solonet:
+              tags: ${{ steps.meta-fennel.outputs.tags }}
+              digest: ${{ steps.build-fennel.outputs.digest }}
+            fennel-service-api:
+              tags: ${{ steps.meta-api.outputs.tags }}
+              digest: ${{ steps.build-api.outputs.digest }}
+          EOF
+          
+          # Also create digest file for GitOps automation
+          echo "${{ steps.build-fennel.outputs.digest }}" > ./artifacts/fennel-solonet-digest.txt
+          echo "${{ steps.build-api.outputs.digest }}" > ./artifacts/fennel-service-api-digest.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fennel-build-manifest
+          path: ./artifacts/
+
+  # =============================================================================
+  # 2. HELM CHART VALIDATION
+  # =============================================================================
+  helm-validation:
+    runs-on: ubuntu-22.04
+    needs: deterministic-build
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+
+      - name: Install Helm plugins
+        run: |
+          helm plugin install https://github.com/chartmuseum/helm-push || true
+          helm plugin install https://github.com/helm/helm-mapkubeapis || true
+
+      - name: Validate Helm charts
+        run: |
+          echo "🔍 Validating Helm charts..."
+          for chart in charts/*/; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              echo "📋 Linting chart: $chart"
+              helm lint "$chart"
+              
+              echo "📦 Templating chart: $chart"
+              helm template "$(basename "$chart")" "$chart" \
+                --set image.tag=test \
+                --set image.digest=${{ needs.deterministic-build.outputs.fennel-digest }} \
+                > /dev/null
+            fi
+          done
+
+      - name: Package Helm charts
+        run: |
+          mkdir -p ./helm-packages
+          for chart in charts/*/; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              echo "📦 Packaging chart: $chart"
+              helm package "$chart" --destination ./helm-packages/
+            fi
+          done
+
+      - name: Upload Helm packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-charts
+          path: ./helm-packages/
+
+  # =============================================================================
+  # 3. KIND KUBERNETES TESTING
+  # =============================================================================
+  kind-integration-tests:
+    runs-on: ubuntu-22.04
+    needs: [deterministic-build, helm-validation]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: fennel-build-manifest
+          path: ./artifacts/
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: fennel-test
+          kubectl_version: v1.29.0
+          wait: 300s
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              image: kindest/node:v1.29.0
+              extraPortMappings:
+              - containerPort: 30333
+                hostPort: 30333
+                protocol: TCP
+              - containerPort: 30334
+                hostPort: 30334
+                protocol: TCP
+              - containerPort: 8080
+                hostPort: 8080
+                protocol: TCP
+
+      - name: Load container images into Kind
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "📥 Loading images into Kind cluster..."
+          
+          # Load fennel-solonet image
+          FENNEL_IMAGE=$(echo "${{ needs.deterministic-build.outputs.fennel-image }}" | head -1)
+          docker pull "$FENNEL_IMAGE"
+          kind load docker-image "$FENNEL_IMAGE" --name fennel-test
+          
+          # Load API image
+          API_IMAGE=$(echo "${{ needs.deterministic-build.outputs.api-image }}" | head -1)
+          docker pull "$API_IMAGE"
+          kind load docker-image "$API_IMAGE" --name fennel-test
+
+      - name: Deploy with Helm
+        run: |
+          echo "🚀 Deploying Fennel to Kind cluster..."
+          
+          # Create namespace
+          kubectl create namespace fennel-test || true
+          
+          # Deploy fennel-solonet chart
+          FENNEL_IMAGE=$(echo "${{ needs.deterministic-build.outputs.fennel-image }}" | head -1)
+          helm upgrade --install fennel-solonet ./charts/fennel-solonet/ \
+            --namespace fennel-test \
+            --set image.repository="$(echo "$FENNEL_IMAGE" | cut -d: -f1)" \
+            --set image.tag="$(echo "$FENNEL_IMAGE" | cut -d: -f2)" \
+            --set image.digest="${{ needs.deterministic-build.outputs.fennel-digest }}" \
+            --set replicaCount=1 \
+            --set persistence.enabled=false \
+            --wait --timeout=10m
+
+      - name: Run integration tests
+        run: |
+          echo "🧪 Running integration tests..."
+          
+          # Wait for pods to be ready
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=fennel-solonet -n fennel-test --timeout=300s
+          
+          # Test RPC endpoint
+          kubectl port-forward -n fennel-test svc/fennel-solonet 9933:9933 &
+          PORT_FORWARD_PID=$!
+          sleep 10
+          
+          # Basic RPC health check
+          curl -H "Content-Type: application/json" \
+            -d '{"id":1, "jsonrpc":"2.0", "method": "system_health", "params":[]}' \
+            http://localhost:9933 | jq .
+          
+          # Cleanup
+          kill $PORT_FORWARD_PID || true
+          
+          echo "✅ Integration tests passed!"
+
+      - name: Generate test report
+        if: always()
+        run: |
+          mkdir -p ./test-results
+          kubectl get pods -n fennel-test -o yaml > ./test-results/pods.yaml
+          kubectl logs -l app.kubernetes.io/name=fennel-solonet -n fennel-test --tail=100 > ./test-results/fennel-logs.txt || true
+          kubectl get events -n fennel-test --sort-by='.lastTimestamp' > ./test-results/events.txt
+          
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kind-test-results
+          path: ./test-results/
+
+  # =============================================================================
+  # 4. DIGEST AUTOMATION for GitOps
+  # =============================================================================
+  update-gitops-digests:
+    runs-on: ubuntu-22.04
+    needs: [deterministic-build, kind-integration-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Generate GitOps update payload
+        run: |
+          cat > gitops-update.json << EOF
+          {
+            "fennel-solonet": {
+              "digest": "${{ needs.deterministic-build.outputs.fennel-digest }}",
+              "wasm_hash": "${{ needs.deterministic-build.outputs.wasm-hash }}",
+              "commit": "${{ github.sha }}",
+              "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            },
+            "fennel-service-api": {
+              "digest": "${{ needs.deterministic-build.outputs.api-digest }}",
+              "commit": "${{ github.sha }}",
+              "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            }
+          }
+          EOF
+          
+      - name: Upload GitOps payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitops-update-payload
+          path: gitops-update.json
+          
+      # TODO: In a future step, this would trigger the infra-gitops repository
+      # to update the dev environment with new image digests
+      - name: Notify GitOps repository (placeholder)
+        run: |
+          echo "🔄 GitOps update payload ready"
+          echo "💡 Future enhancement: Automatically update infra-gitops dev environment"
+          echo "📦 Fennel digest: ${{ needs.deterministic-build.outputs.fennel-digest }}"
+          echo "📦 API digest: ${{ needs.deterministic-build.outputs.api-digest }}" 

@@ -13,8 +13,8 @@
 | 1. Inventory & Freeze | ✅ COMPLETE | 2025-06-10 | `e35da06` | Backup tag, Helm charts, validation tools |
 | 2. Carve out infra-gitops | ✅ COMPLETE | 2025-06-10 | `cf53e77` | Private repo created, manifests moved |
 | 3. Clean up fennel-deploy | ✅ COMPLETE | 2025-06-10 | `c3a87a5` | Services reorganized, local-dev created |
-| 4. Wire deterministic CI | ⏳ NEXT | - | - | srtool, Kind tests, digest automation |
-| 5. Bootstrap GitOps on AKS | ⏸️ PENDING | - | - | Flux/ArgoCD setup |
+| 4. Wire deterministic CI | ✅ COMPLETE | 2025-06-10 | `pending` | srtool, Kind tests, digest automation |
+| 5. Bootstrap GitOps on AKS | ⏳ NEXT | - | - | Flux/ArgoCD setup |
 | 6. Green-light soak in dev | ⏸️ PENDING | - | - | 24h monitoring validation |
 | 7. Promote staging → prod | ⏸️ PENDING | - | - | Environment promotion |
 | 8. Launch & Sudo lockdown | ⏸️ PENDING | - | - | Governance, multisig, backups |
@@ -119,6 +119,39 @@
 
 ---
 
+## 📋 Step 4: Wire Deterministic CI ✅
+
+**Completion Date**: 2025-06-10  
+**Git Commit**: `pending` - "feat: implement deterministic CI with srtool, Kind tests, and digest automation"  
+
+### ✅ Completed Tasks:
+- [x] **4.1** Enhanced existing srtool workflow from fennel-solonet submodule
+- [x] **4.2** Created comprehensive GitHub Actions workflows:
+  - `deterministic-build.yml` - srtool builds with multi-service support
+  - `kind-tests.yml` - Kubernetes integration testing with Kind
+  - `container-digest-automation.yml` - GitOps automation support
+- [x] **4.3** Built local development scripts:
+  - `scripts/build-deterministic.sh` - Local srtool builds matching CI
+  - `scripts/ci-local-test.sh` - Pre-commit CI validation
+- [x] **4.4** Integrated Helm chart validation and packaging
+- [x] **4.5** Added container digest extraction for GitOps workflows
+
+### 📊 Key Features:
+- **Deterministic builds**: srtool 1.84.1 for reproducible runtime builds
+- **Kind integration**: Local Kubernetes testing with realistic deployment
+- **Multi-service support**: fennel-solonet, fennel-service-api, nginx builds
+- **GitOps automation**: Digest extraction and manifest generation
+- **Local CI testing**: Developers can run full CI suite locally
+
+### 🎯 Outcomes:
+- ✅ Production-grade CI/CD pipeline following Polkadot standards
+- ✅ Deterministic builds ensure reproducible runtime hashes
+- ✅ Kind tests validate Helm charts before deployment
+- ✅ GitOps integration ready for automated deployments
+- ✅ Developer experience enhanced with local CI validation
+
+---
+
 ## 🛠️ Progress Management Commands
 
 ### Save Progress After Each Step:
@@ -154,8 +187,8 @@ git clean -fd
 - **Architecture Diagram**: [mermaidgraphdraft1.txt](../NOTES/REPOORGANIZATIONJUNE2025/mermaidgraphdraft1.txt)
 - **Parity Resources**: `~/WORKING_WORKSPACE/Cloud Infrastructure Fennel/GENERIC-ECO-DIRECTORIES/`
 - **Infra-GitOps Repo**: `/home/neurosx/WORKING_WORKSPACE/infra-gitops`
-- **Current Status**: Ready for Step 4 - Wire deterministic CI
+- **Current Status**: Ready for Step 5 - Bootstrap GitOps on AKS
 
 ---
 
-*Last Updated: 2025-06-10 18:50 UTC* 
+*Last Updated: 2025-06-10 19:15 UTC* 

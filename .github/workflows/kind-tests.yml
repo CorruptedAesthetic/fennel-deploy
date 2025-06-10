@@ -1,0 +1,150 @@
+name: Kind Integration Tests
+
+on:
+  push:
+    branches: [ main, develop, experiment ]
+    paths:
+      - 'charts/**'
+      - 'local-dev/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'charts/**'
+      - 'local-dev/**'
+  workflow_dispatch:
+
+jobs:
+  helm-validation:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+
+      - name: Install Helm plugins
+        run: |
+          helm plugin install https://github.com/chartmuseum/helm-push || true
+
+      - name: Validate Helm charts
+        run: |
+          echo "🔍 Validating Helm charts..."
+          for chart in charts/*/; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              echo "📋 Linting chart: $chart"
+              helm lint "$chart"
+              
+              echo "📦 Templating chart: $chart"
+              helm template "$(basename "$chart")" "$chart" \
+                --set image.tag=test \
+                --set replicaCount=1 \
+                > /dev/null
+            fi
+          done
+
+      - name: Package Helm charts
+        run: |
+          mkdir -p ./helm-packages
+          for chart in charts/*/; do
+            if [ -f "$chart/Chart.yaml" ]; then
+              echo "📦 Packaging chart: $chart"
+              helm package "$chart" --destination ./helm-packages/
+            fi
+          done
+
+      - name: Upload Helm packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-charts
+          path: ./helm-packages/
+
+  kind-integration-tests:
+    runs-on: ubuntu-22.04
+    needs: helm-validation
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: fennel-test
+          kubectl_version: v1.29.0
+          wait: 300s
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              image: kindest/node:v1.29.0
+              extraPortMappings:
+              - containerPort: 30333
+                hostPort: 30333
+                protocol: TCP
+              - containerPort: 30334
+                hostPort: 30334
+                protocol: TCP
+
+      - name: Deploy test charts with Helm
+        run: |
+          echo "🚀 Testing Helm chart deployment..."
+          
+          # Create namespace
+          kubectl create namespace fennel-test || true
+          
+          # Deploy fennel-solonet chart with test values
+          helm upgrade --install fennel-solonet ./charts/fennel-solonet/ \
+            --namespace fennel-test \
+            --set image.repository=parity/polkadot \
+            --set image.tag=latest \
+            --set replicaCount=1 \
+            --set persistence.enabled=false \
+            --set service.type=ClusterIP \
+            --dry-run --debug
+
+      - name: Test local-dev setup
+        run: |
+          echo "🧪 Testing local development setup..."
+          
+          # Test docker-compose validation
+          cd local-dev
+          docker-compose config > /dev/null
+          echo "✅ Docker Compose configuration valid"
+          
+          # Test script permissions
+          for script in *.sh; do
+            if [ -f "$script" ]; then
+              if [ -x "$script" ]; then
+                echo "✅ Script $script is executable"
+              else
+                echo "⚠️  Script $script is not executable"
+                chmod +x "$script"
+              fi
+            fi
+          done
+
+      - name: Generate test report
+        if: always()
+        run: |
+          mkdir -p ./test-results
+          kubectl cluster-info > ./test-results/cluster-info.txt
+          kubectl get nodes -o yaml > ./test-results/nodes.yaml
+          kubectl get pods -A > ./test-results/all-pods.txt
+          
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kind-test-results
+          path: ./test-results/ 

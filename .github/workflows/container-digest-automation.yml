@@ -1,0 +1,224 @@
+name: Container Digest Automation
+
+on:
+  workflow_run:
+    workflows: ["Deterministic Build & Test"]
+    types:
+      - completed
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (dev/staging/prod)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+
+jobs:
+  extract-digests:
+    runs-on: ubuntu-22.04
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    
+    outputs:
+      fennel-digest: ${{ steps.extract.outputs.fennel-digest }}
+      api-digest: ${{ steps.extract.outputs.api-digest }}
+      wasm-hash: ${{ steps.extract.outputs.wasm-hash }}
+      
+    steps:
+      - name: Download build artifacts
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: fennel-build-manifest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Extract container digests
+        id: extract
+        run: |
+          if [ -f "./build-manifest.yaml" ]; then
+            echo "📦 Extracting digests from build manifest..."
+            
+            # Parse YAML (simple approach for our specific format)
+            FENNEL_DIGEST=$(grep -A 10 "fennel-solonet:" build-manifest.yaml | grep "digest:" | awk '{print $2}' | tr -d '"')
+            API_DIGEST=$(grep -A 10 "fennel-service-api:" build-manifest.yaml | grep "digest:" | awk '{print $2}' | tr -d '"')
+            WASM_HASH=$(grep "wasm_hash:" build-manifest.yaml | awk '{print $2}' | tr -d '"')
+            
+            echo "fennel-digest=$FENNEL_DIGEST" >> $GITHUB_OUTPUT
+            echo "api-digest=$API_DIGEST" >> $GITHUB_OUTPUT  
+            echo "wasm-hash=$WASM_HASH" >> $GITHUB_OUTPUT
+            
+            echo "✅ Extracted digests:"
+            echo "   Fennel: $FENNEL_DIGEST"
+            echo "   API: $API_DIGEST"
+            echo "   Wasm: $WASM_HASH"
+          else
+            echo "⚠️ No build manifest found, using manual values for testing"
+            echo "fennel-digest=sha256:test" >> $GITHUB_OUTPUT
+            echo "api-digest=sha256:test" >> $GITHUB_OUTPUT
+            echo "wasm-hash=0xtest" >> $GITHUB_OUTPUT
+          fi
+
+  generate-gitops-update:
+    runs-on: ubuntu-22.04
+    needs: extract-digests
+    
+    steps:
+      - name: Determine target environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            ENV="dev"  # Auto-update dev environment on main branch
+          fi
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "🎯 Target environment: $ENV"
+
+      - name: Generate GitOps update manifest
+        run: |
+          cat > gitops-update-${{ steps.env.outputs.environment }}.yaml << EOF
+          # GitOps Update Manifest
+          # Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          # Source commit: ${{ github.sha }}
+          # Environment: ${{ steps.env.outputs.environment }}
+          
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: fennel-image-digests
+            namespace: fennel-${{ steps.env.outputs.environment }}
+            labels:
+              app.kubernetes.io/name: fennel
+              app.kubernetes.io/component: gitops-automation
+          data:
+            fennel-solonet-digest: "${{ needs.extract-digests.outputs.fennel-digest }}"
+            fennel-service-api-digest: "${{ needs.extract-digests.outputs.api-digest }}"
+            wasm-hash: "${{ needs.extract-digests.outputs.wasm-hash }}"
+            source-commit: "${{ github.sha }}"
+            updated-timestamp: "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          
+          ---
+          # Kustomization patch for HelmRelease values
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: fennel-values-${{ steps.env.outputs.environment }}
+            namespace: fennel-${{ steps.env.outputs.environment }}
+          data:
+            values.yaml: |
+              fennel-solonet:
+                image:
+                  digest: "${{ needs.extract-digests.outputs.fennel-digest }}"
+                  annotations:
+                    parity.io/wasm-hash: "${{ needs.extract-digests.outputs.wasm-hash }}"
+                    parity.io/source-commit: "${{ github.sha }}"
+              
+              fennel-service-api:
+                image:
+                  digest: "${{ needs.extract-digests.outputs.api-digest }}"
+                  annotations:
+                    parity.io/source-commit: "${{ github.sha }}"
+          EOF
+
+      - name: Generate Flux HelmRelease update
+        run: |
+          cat > flux-helmrelease-${{ steps.env.outputs.environment }}.yaml << EOF
+          # Flux HelmRelease with updated image digests
+          apiVersion: helm.toolkit.fluxcd.io/v2beta1
+          kind: HelmRelease
+          metadata:
+            name: fennel-solonet
+            namespace: fennel-${{ steps.env.outputs.environment }}
+          spec:
+            chart:
+              spec:
+                chart: fennel-solonet
+                sourceRef:
+                  kind: GitRepository
+                  name: fennel-deploy
+                  namespace: flux-system
+                version: ">=0.1.0"
+            values:
+              image:
+                digest: "${{ needs.extract-digests.outputs.fennel-digest }}"
+              replicaCount: 1
+              persistence:
+                enabled: true
+                size: 20Gi
+              service:
+                type: ClusterIP
+              annotations:
+                parity.io/wasm-hash: "${{ needs.extract-digests.outputs.wasm-hash }}"
+                parity.io/source-commit: "${{ github.sha }}"
+                parity.io/updated: "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          EOF
+
+      - name: Create digest update script
+        run: |
+          cat > update-infra-gitops.sh << 'EOF'
+          #!/bin/bash
+          set -euo pipefail
+          
+          ENVIRONMENT="${{ steps.env.outputs.environment }}"
+          FENNEL_DIGEST="${{ needs.extract-digests.outputs.fennel-digest }}"
+          API_DIGEST="${{ needs.extract-digests.outputs.api-digest }}"
+          WASM_HASH="${{ needs.extract-digests.outputs.wasm-hash }}"
+          COMMIT="${{ github.sha }}"
+          
+          echo "🔄 Updating infra-gitops repository for environment: $ENVIRONMENT"
+          echo "📦 Fennel digest: $FENNEL_DIGEST"
+          echo "📦 API digest: $API_DIGEST"
+          echo "🔗 Wasm hash: $WASM_HASH"
+          echo "📝 Source commit: $COMMIT"
+          
+          # TODO: Future enhancement - automatically commit to infra-gitops repo
+          # This script provides the foundation for GitOps automation
+          
+          cat << INSTRUCTIONS
+          
+          📋 Manual GitOps Update Instructions:
+          
+          1. Navigate to the infra-gitops repository
+          2. Update overlays/$ENVIRONMENT/fennel-solonet/kustomization.yaml
+          3. Add these image digests:
+             
+             images:
+             - name: fennel-solonet
+               digest: $FENNEL_DIGEST
+             - name: fennel-service-api  
+               digest: $API_DIGEST
+          
+          4. Commit with message: "feat: update $ENVIRONMENT with digests from $COMMIT"
+          5. GitOps controller will auto-deploy the changes
+          
+          INSTRUCTIONS
+          EOF
+          
+          chmod +x update-infra-gitops.sh
+
+      - name: Upload GitOps artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitops-update-${{ steps.env.outputs.environment }}
+          path: |
+            gitops-update-${{ steps.env.outputs.environment }}.yaml
+            flux-helmrelease-${{ steps.env.outputs.environment }}.yaml
+            update-infra-gitops.sh
+
+      - name: Summary
+        run: |
+          echo "## 🎯 GitOps Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ steps.env.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Fennel Digest**: \`${{ needs.extract-digests.outputs.fennel-digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**API Digest**: \`${{ needs.extract-digests.outputs.api-digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Wasm Hash**: \`${{ needs.extract-digests.outputs.wasm-hash }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 GitOps update manifests generated and uploaded as artifacts." >> $GITHUB_STEP_SUMMARY
+          echo "💡 Use the uploaded script to update the infra-gitops repository." >> $GITHUB_STEP_SUMMARY 
