@@ -15,7 +15,7 @@
 | 3. Clean up fennel-deploy | ✅ COMPLETE | 2025-06-10 | `c3a87a5` | Services reorganized, local-dev created |
 | 4. Wire deterministic CI | ✅ COMPLETE | 2025-06-10 | `24b9f2c` | srtool, Kind tests, digest automation |
 | 5. Bootstrap GitOps on AKS | ✅ COMPLETE | 2025-06-10 | N/A | Flux v2 deployed, fennel-dev running |
-| 6. Bootnode deployment | ✅ COMPLETE | 2025-06-11 | `12D3KooW...` | Official Polkadot docs compliant |
+| 6. Bootnode deployment | ✅ COMPLETE | 2025-06-11 | `d8db4cd` | Official Polkadot docs compliant |
 | 7. RPC/Validator separation | ⏳ NEXT | - | - | Role-based node deployment |
 | 8. Key management workflow | ⏸️ PENDING | - | - | Automated key rotation and backup |
 | 9. Green-light soak in dev | ⏸️ PENDING | - | - | 24h monitoring validation |
