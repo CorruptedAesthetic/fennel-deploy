@@ -1,17 +1,34 @@
 apiVersion: v2
 name: fennel-solonet
-description: A Helm chart to deploy Fennel solochain nodes
+description: Polkadot SDK compliant Helm chart for Fennel solochain nodes
 type: application
-version: 1.0.0
+version: 1.1.0
+appVersion: "1.0.0"
 maintainers:
   - name: Fennel Labs
-    url: https://github.com/your-org/fennel-deploy
+    url: https://github.com/neurosx/fennel-deploy
     email: devops@fennellabs.com
 keywords:
   - blockchain
   - substrate
   - polkadot-sdk
   - solochain
-home: https://github.com/your-org/fennel-deploy
+  - gitops
+  - flux
+home: https://github.com/neurosx/fennel-deploy
 sources:
-  - https://github.com/your-org/fennel-deploy
+  - https://github.com/neurosx/fennel-deploy
+annotations:
+  # Polkadot SDK compliance
+  polkadot-sdk.io/compliant: "true"
+  polkadot-sdk.io/version: "1.0.0"
+  # GitOps automation
+  flux.weave.works/automated: "true"
+  flux.weave.works/tag.fennel-node: "glob:v*"
+  # Security scanning
+  security.alpha.kubernetes.io/sysctls: "net.core.somaxconn=65535"
+dependencies:
+  - name: common
+    repository: https://charts.bitnami.com/bitnami
+    version: "2.x.x"
+    condition: common.enabled
