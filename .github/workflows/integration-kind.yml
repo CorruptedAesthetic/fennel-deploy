@@ -1,0 +1,104 @@
+name: Integration Tests with Kind
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: 'Image digest from fennel-solonet build'
+        required: true
+        default: 'sha256:latest'
+  pull_request:
+    paths:
+      - 'charts/**'
+      - '.github/workflows/integration-kind.yml'
+
+env:
+  FENNEL_IMAGE: ghcr.io/corruptedaesthetic/uptodatefennelnetmp
+
+jobs:
+  kind-integration-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1.8.0
+        with:
+          cluster_name: fennel-test
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              extraPortMappings:
+              - containerPort: 30333
+                hostPort: 30333
+                protocol: TCP
+              - containerPort: 9944
+                hostPort: 9944
+                protocol: TCP
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Test cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Create namespace
+        run: kubectl create namespace fennel-dev
+
+      - name: Apply our tested manifests
+        run: |
+          # For now, apply our working manifests directly
+          # Later, we'll convert to Helm templates
+          kubectl apply -f - <<EOF
+          $(curl -sL https://raw.githubusercontent.com/your-org/infra-gitops/main/overlays/dev/fennel-solonet/bootnode-official-compliant.yaml)
+          EOF
+          
+          kubectl apply -f - <<EOF
+          $(curl -sL https://raw.githubusercontent.com/your-org/infra-gitops/main/overlays/dev/fennel-solonet/rpc-node-deployment.yaml)
+          EOF
+
+      - name: Wait for pods
+        run: |
+          kubectl wait --for=condition=ready pod -l app=fennel-bootnode-official -n fennel-dev --timeout=300s
+          kubectl wait --for=condition=ready pod -l app=fennel-rpc-node -n fennel-dev --timeout=300s
+
+      - name: Test RPC endpoint
+        run: |
+          # Port forward to RPC service
+          kubectl port-forward -n fennel-dev svc/fennel-rpc-node-service 9944:9944 &
+          sleep 10
+          
+          # Test RPC health
+          curl -v -X POST -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"system_health","params":[],"id":1}' \
+            http://localhost:9944
+
+      - name: Test WebSocket endpoint
+        run: |
+          # Install websocat for WebSocket testing
+          wget -qO- https://github.com/vi/websocat/releases/download/v1.11.0/websocat_linux64 > websocat
+          chmod +x websocat
+          
+          # Test WebSocket connection
+          echo '{"jsonrpc":"2.0","method":"system_health","params":[],"id":1}' | \
+            timeout 10 ./websocat -n1 ws://localhost:9944 || true
+
+      - name: Check logs on failure
+        if: failure()
+        run: |
+          kubectl get pods -n fennel-dev
+          kubectl logs -n fennel-dev -l app=fennel-solonet --tail=50
+
+      - name: Update infra-gitops with digest
+        if: success() && github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Would update infra-gitops with digest: ${{ github.event.inputs.image_digest }}"
+          # In real implementation:
+          # - Clone infra-gitops
+          # - Update values-dev.yaml with new digest
+          # - Create PR or push directly 
