@@ -1,0 +1,70 @@
+---
+# Fennel Solonet HelmRelease for dev environment
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: fennel-solonet
+  namespace: fennel-dev
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: ./charts/fennel-solonet
+      version: ">=0.1.0"
+      sourceRef:
+        kind: GitRepository
+        name: fennel-local
+        namespace: flux-system
+      interval: 5m
+  values:
+    # Development environment configuration
+    node:
+      chain: "local"
+      role: "authority"
+      replicas: 1
+      # Use Alice validator for local dev
+      keys:
+        - type: "gran"
+          scheme: "ed25519" 
+          seed: "//Alice//gran"
+        - type: "babe"
+          scheme: "sr25519"
+          seed: "//Alice"
+    
+    # Use our built image from deterministic build
+    image:
+      repository: "ghcr.io/corruptedaesthetic/fennel-deploy/fennel-solonet"
+      tag: "local-20250610-191436"  # From our build artifacts
+      pullPolicy: IfNotPresent
+    
+    # Development-specific settings
+    persistence:
+      enabled: false  # Ephemeral storage for dev
+    
+    service:
+      type: ClusterIP
+      
+    # Enable metrics for monitoring
+    prometheus:
+      enabled: true
+      port: 9615
+      
+    # Resource limits for dev environment
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
+---
+# Local GitRepository source (alternative approach)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fennel-charts
+  namespace: flux-system
+data:
+  # We'll mount our charts here for Flux to use
+  # This is a simplified approach for local demo 

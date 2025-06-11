@@ -1,0 +1,50 @@
+---
+# GitRepository source for infra-gitops
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: infra-gitops
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  ref:
+    branch: main
+  url: file:///home/neurosx/WORKING_WORKSPACE/infra-gitops
+  # For local development - in production this would be:
+  # url: https://github.com/CorruptedAesthetic/infra-gitops
+
+---
+# GitRepository source for fennel-deploy (for Helm charts)  
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: fennel-deploy
+  namespace: flux-system
+spec:
+  interval: 1m0s
+  ref:
+    branch: experiment  # Using our current working branch
+  url: file:///home/neurosx/WORKING_WORKSPACE/fennel-deploy
+  # For production this would be:
+  # url: https://github.com/CorruptedAesthetic/fennel-deploy
+
+---
+# Kustomization for dev environment
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: fennel-dev
+  namespace: flux-system
+spec:
+  interval: 10m0s
+  path: ./overlays/dev
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: infra-gitops
+  targetNamespace: fennel-dev
+  # Create namespace if it doesn't exist
+  commonMetadata:
+    labels:
+      environment: dev
+      gitops.toolkit.fluxcd.io/name: fennel-dev 
