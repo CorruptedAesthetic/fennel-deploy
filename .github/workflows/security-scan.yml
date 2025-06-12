@@ -1,0 +1,186 @@
+name: Security Scan & Policy Validation
+
+on:
+  pull_request:
+    paths:
+      - 'charts/**'
+      - 'overlays/**'
+      - '**.yaml'
+      - '**.yml'
+  push:
+    branches: [main]
+
+jobs:
+  policy-validation:
+    name: Policy Validation (Conftest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Conftest
+        run: |
+          wget https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz
+          tar xzf conftest_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin
+
+      - name: Create Polkadot SDK Policy Rules
+        run: |
+          mkdir -p policy
+          cat > policy/polkadot-security.rego << 'EOF'
+          package main
+
+          import rego.v1
+
+          # Deny :latest tags (Polkadot SDK requirement)
+          deny contains msg if {
+              input.kind == "Deployment"
+              container := input.spec.template.spec.containers[_]
+              endswith(container.image, ":latest")
+              msg := sprintf("Container '%s' uses forbidden ':latest' tag. Use specific digests per Polkadot SDK standards.", [container.name])
+          }
+
+          deny contains msg if {
+              input.kind == "StatefulSet"
+              container := input.spec.template.spec.containers[_]
+              endswith(container.image, ":latest")
+              msg := sprintf("Container '%s' uses forbidden ':latest' tag. Use specific digests per Polkadot SDK standards.", [container.name])
+          }
+
+          # Require resource limits (Polkadot SDK requirement)
+          deny contains msg if {
+              input.kind in ["Deployment", "StatefulSet"]
+              container := input.spec.template.spec.containers[_]
+              not container.resources.limits.memory
+              msg := sprintf("Container '%s' missing memory limits. Required for Polkadot SDK deployments.", [container.name])
+          }
+
+          deny contains msg if {
+              input.kind in ["Deployment", "StatefulSet"]
+              container := input.spec.template.spec.containers[_]
+              not container.resources.limits.cpu
+              msg := sprintf("Container '%s' missing CPU limits. Required for Polkadot SDK deployments.", [container.name])
+          }
+
+          # Require security context (Polkadot SDK security)
+          deny contains msg if {
+              input.kind in ["Deployment", "StatefulSet"]
+              container := input.spec.template.spec.containers[_]
+              container.name == "fennel-node"
+              not input.spec.template.spec.securityContext.runAsNonRoot
+              msg := "Fennel node must run as non-root user per Polkadot SDK security standards."
+          }
+
+          # Require readiness probes for critical services
+          deny contains msg if {
+              input.kind in ["Deployment", "StatefulSet"]
+              container := input.spec.template.spec.containers[_]
+              container.name == "fennel-node"
+              not container.readinessProbe
+              msg := "Fennel node containers must have readiness probes for reliable P2P networking."
+          }
+
+          # Validate network policies exist for P2P communication
+          warn contains msg if {
+              input.kind == "Deployment"
+              input.metadata.labels.app == "fennel-solonet"
+              msg := "Ensure NetworkPolicy allows P2P ports 30333, 30310, 30311 for Polkadot SDK networking."
+          }
+          EOF
+
+      - name: Validate Helm Charts
+        run: |
+          # Template all charts and validate against policies
+          for chart in charts/*/; do
+            echo "🔍 Validating chart: $chart"
+            helm template test-release "$chart" \
+              --set image.tag=sha256:abc123 \
+              --set resources.limits.memory=2Gi \
+              --set resources.limits.cpu=1000m \
+              | conftest verify --policy policy/
+          done
+
+      - name: Validate Kustomizations
+        run: |
+          # Check if kustomize overlays exist and validate them
+          if [ -d "overlays" ]; then
+            for overlay in overlays/*/; do
+              echo "🔍 Validating overlay: $overlay"
+              if [ -f "$overlay/kustomization.yaml" ]; then
+                kustomize build "$overlay" | conftest verify --policy policy/
+              fi
+            done
+          fi
+
+      - name: Run Conftest on Raw Manifests
+        run: |
+          # Find and validate any standalone YAML manifests
+          find . -name "*.yaml" -o -name "*.yml" | grep -E "(deployment|statefulset|service)" | while read file; do
+            echo "🔍 Validating manifest: $file"
+            conftest verify --policy policy/ "$file" || true
+          done
+
+  container-security:
+    name: Container Security (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  gatekeeper-sync:
+    name: Validate Gatekeeper Policies
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.changed_files, 'base/policies/')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Validate Gatekeeper ConstraintTemplates
+        run: |
+          # Validate syntax of any Gatekeeper policies
+          find base/policies/ -name "*.yaml" | while read policy; do
+            echo "🔍 Validating Gatekeeper policy: $policy"
+            yq eval '. | select(.kind == "ConstraintTemplate")' "$policy" > /tmp/constraint.yaml
+            if [ -s /tmp/constraint.yaml ]; then
+              echo "✅ ConstraintTemplate syntax valid"
+            fi
+          done
+
+  sbom-generation:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate Software Bill of Materials
+        run: |
+          # Generate SBOM for container images referenced in charts
+          echo "📋 Generating SBOM for Polkadot SDK deployment..."
+          
+          # Extract image references from Helm charts
+          find charts/ -name "values.yaml" | xargs grep -h "repository\|tag" | \
+            grep -E "(ghcr.io|docker.io)" > images.txt || true
+          
+          if [ -s images.txt ]; then
+            echo "📦 Container images found in deployment:"
+            cat images.txt
+          else
+            echo "ℹ️ No container image references found in charts"
+          fi
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-polkadot-sdk
+          path: images.txt 

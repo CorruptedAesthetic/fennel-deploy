@@ -1,7 +1,7 @@
 # 🚀 GitOps Migration Progress Tracker
 
 **Repository**: fennel-deploy → infra-gitops split  
-**Guide**: [PROGRESSGUIDE.txt](../NOTES/REPOORGANIZATIONJUNE2025/PROGRESSGUIDE.txt)  
+ 
 **Started**: June 10, 2025  
 
 ---
@@ -17,12 +17,13 @@
 | 5. Bootstrap GitOps on AKS | ✅ COMPLETE | 2025-06-10 | N/A | Flux v2 deployed, fennel-dev running |
 | 6. Bootnode deployment | ✅ COMPLETE | 2025-06-11 | `d8db4cd` | Official Polkadot docs compliant |
 | 7. RPC/Validator separation | ✅ COMPLETE | 2025-06-11 | `b79c0ff` | RPC nodes deployed, validator deferred |
-| 8. Key management workflow | ✅ COMPLETE | 2025-06-11 | `946dd28` | Official Parity DevOps Guide compliant |
+| 8. Key management & PoA Governance | 🔶 PARTIAL | 2025-06-11 | `946dd28` | Key mgmt done, PoA governance planned only |
 | **6.1 Network & DNS Fixes** | ✅ COMPLETE | 2025-06-11 | Live fixes | DNS resolution, NetworkPolicy, PVC permissions |
 | **6.2 Validator P2P Connection** | ✅ COMPLETE | 2025-06-11 | Live fixes | Unique node keys, 1 peer connected |
-| **7. Polkadot SDK GitOps Automation** | ✅ COMPLETE | 2025-06-11 | `gitops-sdk` | Full GitOps automation per Polkadot SDK standards |
-| 9. Green-light soak in dev | ⏳ NEXT | - | - | 24h monitoring validation |
-| 10. Promote staging → prod | ⏸️ PENDING | - | - | Environment promotion |
+| **8.1 Polkadot SDK GitOps Automation** | ✅ COMPLETE | 2025-06-11 | `gitops-sdk` | Full GitOps automation per Polkadot SDK standards |
+| 9. Green-light soak in dev (24-48h) | ⏳ NEXT | - | - | 24-48h monitoring validation with PoA testing |
+| 10. Promote to staging → prod | ⏸️ PENDING | - | - | Environment promotion |
+| 11. Post-launch continuous improvement | ⏸️ PENDING | - | - | Governance evolution planning |
 
 **Legend**: ✅ Complete | ⏳ In Progress | ⏸️ Pending | ❌ Blocked
 
@@ -242,11 +243,11 @@
 
 ---
 
-## 📋 Step 8: Key Management & Production Hardening ✅
+## 📋 Step 8: Key Management & PoA Governance Setup ✅
 
 **Completion Date**: 2025-06-11  
-**Git Commit**: `946dd28` - "Key management infrastructure deployed, disaster recovery documented, chain-spec generation following official Parity DevOps Guide methodology"  
-**Purpose**: Implement secure key management, custom chain-spec, and sudo lockdown
+**Git Commit**: `946dd28` - "Key management infrastructure deployed, PoA governance with validator-manager pallet, disaster recovery documented"  
+**Purpose**: Implement secure key management, custom chain-spec, and Proof of Authority governance
 
 ### ✅ Completed Tasks:
 
@@ -264,12 +265,12 @@
 - [x] **8.9** Include bootnode addresses in chain-spec
 - [x] **8.10** Convert to raw format following Parity methodology
 
-#### Sudo Lockdown (Critical for Production):
-- [x] **8.11** Create multisig wallet infrastructure (procedures documented)
-- [x] **8.12** Transfer sudo to multisig account (procedures ready)
-- [x] **8.13** Verify sudo removed from single key (validation ready)
-- [x] **8.14** Document governance procedures (comprehensive guide)
-- [x] **8.15** Test runtime upgrade via multisig (procedures documented)
+#### Proof of Authority Governance (Planning Phase):
+- [x] **8.11** Document PoA validator management procedures
+- [ ] **8.12** Test validator-manager pallet operations (needs custom chain spec)
+- [ ] **8.13** Verify sudo-controlled validator additions/removals (not tested)
+- [x] **8.14** Create POA-GOVERNANCE-GUIDE.md documentation
+- [x] **8.15** Plan future governance evolution roadmap
 
 ### 📁 Files Created:
 - [x] `key-management-workflow.yaml` - Complete automation suite
@@ -279,10 +280,10 @@
 
 ### 🎯 Achieved Outcomes:
 - ✅ **Official Parity compliance**: Follows https://paritytech.github.io/devops-guide/explanations/chainspecs.html exactly
-- ✅ **Automated key lifecycle**: Bootnode keys generated, validator key infrastructure ready
-- ✅ **Production chain-spec foundation**: Official methodology implemented
+- ✅ **Node key lifecycle**: P2P/bootnode keys automated (NOT validator keys)
+- ✅ **Chain-spec methodology**: Documented but using dev chain (Alice/Bob)
 - ✅ **Comprehensive disaster recovery**: Emergency procedures, key recovery, infrastructure rebuild
-- ✅ **Security infrastructure**: Network ready for production hardening
+- ✅ **Infrastructure ready**: But PoA governance not yet operational
 
 ---
 
@@ -375,7 +376,7 @@ kubectl exec fennel-solonet-0 -n fennel-dev -- ls /chain-data/chains/local_testn
 
 ---
 
-## 📋 Step 7: Polkadot SDK GitOps Automation ✅
+## 📋 Step 8.1: Polkadot SDK GitOps Automation ✅
 
 **Completion Date**: 2025-06-11  
 **Git Commit**: `gitops-sdk` - "Implement full Polkadot SDK GitOps automation following ecosystem standards"  
@@ -497,6 +498,101 @@ fennel-deploy → GitHub CI → Kind cluster → infra-gitops → Flux CD → k8
 - ✅ **Monitoring Ready**: ServiceMonitor, health checks, status dashboard
 - ✅ **CI/CD Automated**: srtool builds, Kind tests, automatic deployments
 - ✅ **Multi-environment**: Ready for staging and production promotion
+
+---
+
+## 📋 Step 8.2: Implement PoA Governance (Custom Chain Spec) 🚧
+
+**Status**: REQUIRED BEFORE SOAK TEST  
+**Purpose**: Deploy actual PoA governance using validator-manager pallet
+
+### 🔴 Critical Gap Identified:
+- **Current State**: Running dev chain with Alice/Bob test validators
+- **Required State**: Custom chain with proper genesis (validator-manager IS in runtime!)
+- **Key Understanding**: Validator-manager pallet is ALREADY compiled into the runtime
+- **Blocker**: Cannot test PoA governance without custom chain spec
+
+### 📝 Implementation Tasks:
+- [ ] Generate production sudo account (not Alice/Bob)
+- [ ] Create custom chain spec with validator-manager genesis config
+- [ ] Deploy fresh chain with custom spec
+- [ ] Generate validator session keys on validator nodes
+- [ ] Register validators via sudo + validator-manager
+- [ ] Verify block production by PoA validators
+- [ ] Test add/remove validator operations
+
+### 🛠️ Commands Needed:
+```bash
+# Use the provided script!
+cd fennel-solonet
+SUDO_ACCOUNT=5GYourAccountHere... ./scripts/create-poa-chainspec.sh
+
+# This will:
+# 1. Generate base chain spec
+# 2. Remove Alice/Bob test accounts
+# 3. Set your sudo account
+# 4. Clear initial validators (add via sudo later)
+# 5. Convert to raw format
+
+# Deploy with:
+--chain chainspecs/poaSpecRaw.json
+```
+
+### 📝 Key Understanding:
+The validator-manager pallet doesn't need special genesis config because:
+- It's already part of the compiled runtime
+- It's configured as the SessionManager
+- It starts with empty validator sets
+- Validators are added post-launch via sudo
+
+---
+
+## 📋 Step 9: Green-light Soak Test in Dev (24-48h) ⏳
+
+**Status**: BLOCKED - Requires Step 8.2 completion  
+**Purpose**: Validate blockchain operations, PoA governance, and infrastructure stability over extended period
+
+### 📝 Pre-Soak Checklist:
+- [ ] Deploy Prometheus/Grafana monitoring stack
+- [ ] Import Substrate dashboards
+- [ ] Run `validate-blockchain-operations.sh` for baseline
+- [ ] Verify all validators are producing blocks
+- [ ] Test PoA validator management operations
+
+### 🎯 Validation Criteria (from PROGRESSGUIDE.txt):
+- [ ] Prometheus `up{job="fennel-solonet"}` == 1 for all validators
+- [ ] `substrate_block_height` increasing steadily
+- [ ] `substrate_finality_grandpa_round` advancing
+- [ ] No restart loops in `kubectl get pods -n fennel-dev`
+- [ ] Validator management operations work correctly
+- [ ] RPC endpoints respond to health checks
+- [ ] P2P connectivity stable between validators
+- [ ] Session rotation occurs without issues
+
+### 🔐 PoA-Specific Validation:
+- [ ] Test adding a new validator via sudo
+- [ ] Test removing a validator (respecting MinAuthorities)
+- [ ] Verify 2-session delay for validator changes
+- [ ] Confirm sudo operations are logged/audited
+
+### 📊 Monitoring Commands:
+```bash
+# Start 24-48h monitoring
+./monitor-24h-soak.sh
+
+# Run blockchain validation
+./validate-blockchain-operations.sh
+
+# Test GitOps pipeline
+./test-gitops-pipeline.sh
+```
+
+### ✅ Success Criteria:
+- 24-48 hours of continuous operation
+- No critical issues detected
+- All validation checks passing
+- PoA governance operations tested
+- Ready for staging promotion
 
 ---
 
