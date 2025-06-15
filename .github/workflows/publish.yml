@@ -1,0 +1,288 @@
+name: Create and publish a Docker image
+
+# Configures this workflow to run every time a change is pushed to the branch called `release`.
+on:
+  push:
+    branches: ['main']
+
+# Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# There is a single job in this workflow. It's configured to run on the latest available version of Ubuntu.
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    permissions:
+      contents: read
+      packages: write
+      #
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Free up additional disk space on GitHub runner (~10-15 GB)
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /usr/share/swift /usr/local/lib/android /opt/hostedtoolcache || true
+          sudo apt-get clean
+          df -h
+
+      # Set up Docker Buildx for efficient layer caching
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      # Uses the `docker/login-action` action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+      
+      # ------------------------------------------------------------
+      # Build the runtime deterministically with srtool and capture
+      # its SHA-256 so we can inject it as an OCI label.
+      # ------------------------------------------------------------
+      - name: Build runtime with srtool & extract Wasm hash
+        id: wasm
+        run: |
+          set -euo pipefail
+          echo "🛠️  Running srtool to build compact runtime…"
+          # Build runtime inside srtool container (outputs verbose log to console)
+          docker run --rm \
+            -v "${PWD}":/build \
+            -e RUNTIME_DIR=runtime/fennel \
+            -e PACKAGE=fennel-node-runtime \
+            --workdir /build \
+            paritytech/srtool:1.84.1 /srtool/build
+
+          # After the container exits the compiled Wasm lives in the mounted volume
+          HASH=$(sha256sum runtime/fennel/target/srtool/release/wbuild/fennel-node-runtime/fennel_node_runtime.compact.wasm | awk '{print "0x"$1}')
+          echo "WASM_HASH=$HASH" >> $GITHUB_ENV
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+          echo "✅ Deterministic Wasm hash: $HASH"
+
+      # ------------------------------------------------------------
+      # Generate chain specifications using chain-spec-builder
+      # ------------------------------------------------------------
+      - name: Install jq for JSON processing
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          echo "✅ Installed jq"
+
+      - name: Install chain-spec-builder
+        run: |
+          # Create directory for chain-spec-builder
+          mkdir -p "${HOME}/.cargo/bin"
+          
+          # Use Parity's prebuilt container that has Rust, protoc, and all dependencies
+          docker run --rm \
+            -v "${PWD}":/build \
+            -v "${HOME}/.cargo/bin":/cargo-bin \
+            --workdir /build \
+            paritytech/ci-unified:latest \
+            bash -c "
+              cargo install staging-chain-spec-builder --locked --root /tmp/cargo-install && \
+              cp /tmp/cargo-install/bin/chain-spec-builder /cargo-bin/
+            "
+          echo "✅ Installed chain-spec-builder"
+          
+          # Add cargo bin to PATH for subsequent steps
+          echo "${HOME}/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Create development chain spec
+        run: |
+          # Create chainspecs directory if it doesn't exist
+          mkdir -p chainspecs
+          
+          # First, get the default genesis config from the runtime
+          chain-spec-builder create \
+            -r runtime/fennel/target/srtool/release/wbuild/fennel-node-runtime/fennel_node_runtime.compact.wasm \
+            default \
+            > chainspecs/default-genesis.json
+
+          # Create development patch file that matches genesis_config_presets.rs
+          cat > chainspecs/development-patch.json << 'EOF'
+          {
+            "name": "Fennel Development",
+            "id": "fennel-dev",
+            "chainType": "Development",
+            "properties": {
+              "ss58Format": 42,
+              "tokenDecimals": 12,
+              "tokenSymbol": "FENNEL"
+            },
+            "genesis": {
+              "runtime": {
+                "system": {
+                  "code": "${{ env.WASM_HASH }}"
+                },
+                "balances": {
+                  "balances": [
+                    ["5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1152921504606846976],
+                    ["5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty", 1152921504606846976],
+                    ["5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y", 1152921504606846976],
+                    ["5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy", 1152921504606846976]
+                  ]
+                },
+                "sudo": {
+                  "key": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY"
+                },
+                "validatorManager": {
+                  "initialValidators": [
+                    "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+                    "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty"
+                  ]
+                },
+                "session": {
+                  "keys": [
+                    [
+                      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+                      "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+                      {
+                        "aura": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+                        "grandpa": "5FA9nQDVg267DEd8m1ZypXLBnvN7SFxYwV7ndqSYGiN9TTpu"
+                      }
+                    ],
+                    [
+                      "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+                      "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+                      {
+                        "aura": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+                        "grandpa": "5GoNkf6WdbxCFnPdAnYYQyCjAKPJgLNxXwPjwTh6DGg6gN3E"
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+          EOF
+
+          # Merge default genesis with our patch
+          echo "Merging default genesis with development patch..."
+          jq -s '.[0] * .[1]' chainspecs/default-genesis.json chainspecs/development-patch.json > chainspecs/development.json
+
+          # Convert to raw format
+          echo "Converting to raw format..."
+          chain-spec-builder convert-to-raw chainspecs/development.json > chainspecs/development-raw.json
+          
+          # Verify the specs were created
+          echo "✅ Generated chain specifications:"
+          ls -l chainspecs/
+          
+          # Output the final chain spec structure
+          echo "Final chain spec structure:"
+          jq -r '.genesis.runtime | keys[]' chainspecs/development.json
+
+      - name: Create staging chain specs with bootnodes
+        run: |
+          # Create Staging directory for staging chainspecs
+          mkdir -p Staging
+          
+          # Generate staging chain spec (plain) with bootnodes
+          echo "Generating staging chain spec with bootnodes..."
+          chain-spec-builder create named-preset staging \
+            --runtime runtime/fennel/target/srtool/release/wbuild/fennel-node-runtime/fennel_node_runtime.compact.wasm \
+            --bootnodes /dns/fennel-bootnode-1.fennel-staging.svc.cluster.local/tcp/30333/p2p/12D3KooWDCZGrnJhsgWJtDcs6eZc1hUBrVj5QqkEWggAkNVowRAi \
+            --bootnodes /dns/fennel-bootnode-2.fennel-staging.svc.cluster.local/tcp/30333/p2p/12D3KooWDbfFv6oepAXmQaiwFaVjD9g7AxowQ8LQdWTcVYpKhnAx \
+            --output Staging/staging-chainspec.json
+          
+          # Generate staging chain spec (raw) with bootnodes
+          echo "Generating raw staging chain spec with bootnodes..."
+          chain-spec-builder create named-preset staging \
+            --runtime runtime/fennel/target/srtool/release/wbuild/fennel-node-runtime/fennel_node_runtime.compact.wasm \
+            --bootnodes /dns/fennel-bootnode-1.fennel-staging.svc.cluster.local/tcp/30333/p2p/12D3KooWDCZGrnJhsgWJtDcs6eZc1hUBrVj5QqkEWggAkNVowRAi \
+            --bootnodes /dns/fennel-bootnode-2.fennel-staging.svc.cluster.local/tcp/30333/p2p/12D3KooWDbfFv6oepAXmQaiwFaVjD9g7AxowQ8LQdWTcVYpKhnAx \
+            --raw --output Staging/staging-raw.json
+          
+          # Verify the staging specs were created
+          echo "✅ Generated staging chain specifications:"
+          ls -la Staging/
+          
+          # Show bootnode configuration in the generated specs
+          echo "Bootnode configuration in staging spec:"
+          jq -r '.bootNodes[]' Staging/staging-chainspec.json
+
+      - name: Commit staging chainspecs to repository
+        run: |
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Add the staging chainspecs
+          git add Staging/staging-chainspec.json Staging/staging-raw.json
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to staging chainspecs"
+          else
+            # Commit the changes
+            git commit -m "Update staging chainspecs with bootnodes [skip ci]"
+            
+            # Push the changes back to the repository
+            git push origin main
+            
+            echo "✅ Staging chainspecs committed and pushed to repository"
+          fi
+
+      - name: Upload chain specs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fennel-chainspecs
+          path: |
+            chainspecs/default-genesis.json
+            chainspecs/development-patch.json
+            chainspecs/development.json
+            chainspecs/development-raw.json
+            Staging/staging-chainspec.json
+            Staging/staging-raw.json
+      
+      # This step uses the `docker/build-push-action` action to build the image, based on your repository's `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
+      # It uses the `context` parameter to define the build's context as the set of files located in the specified path. For more information, see "[Usage](https://github.com/docker/build-push-action#usage)" in the README of the `docker/build-push-action` repository.
+      # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            WASM_HASH=${{ env.WASM_HASH }}
+          cache-from: type=gha
+          provenance: false
+          
+      # Create and upload artifact containing image info
+      - name: Output image info to artifact
+        run: |
+          mkdir -p ./artifacts
+          echo "Image name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" > ./artifacts/image-info.txt
+          echo "Tags:      ${{ steps.meta.outputs.tags }}" >> ./artifacts/image-info.txt
+          echo "Wasm hash: ${{ env.WASM_HASH }}"          >> ./artifacts/image-info.txt
+          echo "Digest:    ${{ steps.build.outputs.digest }}" >> ./artifacts/image-info.txt
+          echo "Created:   $(date -u +\"%Y-%m-%dT%H:%M:%SZ\")" >> ./artifacts/image-info.txt
+          
+      - name: Upload Docker image info artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fennel-node-image-info
+          path: ./artifacts/image-info.txt
+
