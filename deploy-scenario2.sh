@@ -40,7 +40,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-WORKSPACE_DIR="/home/neurosx/WORKING_WORKSPACE/fennel-deploy"
+WORKSPACE_DIR="/home/neurosx/MAINPROJECTFOLDER/fennel-deploy"
 K8S_DIR="$WORKSPACE_DIR/fennel-solonet/kubernetes"
 DOCKER_IMAGE="ghcr.io/corruptedaesthetic/uptodatefennelnetmp:sha-2ea7777df54a4bc1d113591d6a2351930bae3806"
 
@@ -998,11 +998,11 @@ phase0_bootnodes() {
     
     # Start applications
     log "Starting applications..."
-    docker-compose -f docker-compose.apps.yml up -d
+    docker-compose -f "$WORKSPACE_DIR/docker-compose.apps.yml" up -d
     
     # Verify applications
     log "Verifying applications..."
-    docker-compose -f docker-compose.apps.yml ps
+    docker-compose -f "$WORKSPACE_DIR/docker-compose.apps.yml" ps
     
     # Setup k3s
     cd "$K8S_DIR"
